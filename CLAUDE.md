@@ -1,4 +1,4 @@
-# ~/lyra-stack — Lyra Infrastructure
+# ~/projects/lyra-stack — Lyra Infrastructure
 
 Central supervisord instance for the **local** machine (ROXABITOWER, WSL2, RTX 5070 Ti).
 Manages all background services that support Lyra and its ecosystem.
@@ -14,7 +14,7 @@ Manages all background services that support Lyra and its ecosystem.
 ## Layout
 
 ```
-~/lyra-stack/
+~/projects/lyra-stack/
   supervisord.conf      — daemon config (socket, logs, includes conf.d)
   conf.d/               — symlinks only, each project owns its conf
     lyra.conf           → ~/projects/lyra/supervisor/conf.d/lyra.conf
@@ -30,7 +30,7 @@ Manages all background services that support Lyra and its ecosystem.
 ## Commands
 
 ```bash
-cd ~/lyra-stack
+cd ~/projects/lyra-stack
 
 make start           # start supervisord + all services (idempotent)
 make ps              # status of all services

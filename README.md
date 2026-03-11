@@ -18,7 +18,7 @@ this repo is just the runtime hub that holds them together.
 
 ```bash
 # 1. Clone this repo
-git clone git@github.com:Roxabi/lyra-stack.git ~/lyra-stack
+git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
 
 # 2. Clone and register each project
 git clone git@github.com:Roxabi/lyra.git ~/projects/lyra
@@ -28,7 +28,7 @@ cd ~/projects/lyra    && uv sync && make register
 cd ~/projects/voiceCLI && uv sync && make register
 
 # 3. Start everything
-cd ~/lyra-stack && make start
+cd ~/projects/lyra-stack && make start
 
 # 4. Verify
 make ps
@@ -37,7 +37,7 @@ make ps
 ## Daily commands
 
 ```bash
-cd ~/lyra-stack
+cd ~/projects/lyra-stack
 
 make ps                  # status of all services
 
@@ -59,7 +59,7 @@ make stt reload          # restart stt
 `make register` in any project creates the symlink and signals supervisord to pick it up.
 
 ```
-~/lyra-stack/conf.d/
+~/projects/lyra-stack/conf.d/
   lyra.conf         → ~/projects/lyra/supervisor/conf.d/lyra.conf
   voicecli_tts.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
   voicecli_stt.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
