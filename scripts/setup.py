@@ -8,7 +8,9 @@ import tomllib
 from pathlib import Path
 
 STACK_FILE = Path(__file__).parent.parent / "stack.toml"
-LYRA_STACK_DIR = Path(os.environ.get("LYRA_STACK_DIR", Path.home() / "projects" / "lyra-stack"))
+LYRA_STACK_DIR = Path(
+    os.environ.get("LYRA_STACK_DIR", Path.home() / "projects" / "lyra-stack")
+)
 
 
 def run(cmd: str, cwd: Path | None = None, check: bool = True) -> int:
@@ -35,7 +37,10 @@ def ask(prompt: str, default: bool = True) -> bool:
 def check_prereqs() -> bool:
     checks = {
         "git": ("git --version", None),
-        "uv":  ("uv --version", "https://docs.astral.sh/uv/getting-started/installation/"),
+        "uv": (
+            "uv --version",
+            "https://docs.astral.sh/uv/getting-started/installation/",
+        ),
         "ssh": ("ssh -T git@github.com", None),  # exits 1 on success for GitHub
     }
     print("Checking prerequisites...")
@@ -43,11 +48,14 @@ def check_prereqs() -> bool:
     for name, (cmd, install_url) in checks.items():
         result = subprocess.run(cmd, shell=True, capture_output=True)
         ok = result.returncode in (0, 1) if name == "ssh" else result.returncode == 0
-        print(f"  {'✓' if ok else '✗'}  {name}" + (f"  →  {install_url}" if not ok and install_url else ""))
+        print(
+            f"  {'✓' if ok else '✗'}  {name}"
+            + (f"  →  {install_url}" if not ok and install_url else "")
+        )
         if not ok:
             failed.append(name)
     if failed:
-        print(f"\nFix the above before running setup.")
+        print("\nFix the above before running setup.")
         return False
     return True
 
@@ -91,15 +99,15 @@ def main() -> None:
                 print(f"       pinning to {tag}...")
                 run(f"git checkout {tag}", cwd=path)
 
-        print(f"       installing...")
+        print("       installing...")
         run(module.get("install", "uv sync"), cwd=path)
 
         if module.get("register", True):
-            print(f"       registering...")
+            print("       registering...")
             env = {**os.environ, "LYRA_STACK_DIR": str(LYRA_STACK_DIR)}
             subprocess.run("make register", shell=True, cwd=path, env=env, check=True)
         else:
-            print(f"       skipping registration (no daemon)")
+            print("       skipping registration (no daemon)")
 
         cloned.append(name)
         print()
@@ -117,7 +125,9 @@ def main() -> None:
     print("  make stt reload      restart voicecli_stt")
     print()
     if include_optional is False and any(m.get("optional") for m in modules.values()):
-        print("  make setup ARGS=--all    include optional modules (imageCLI, roxabi-vault)")
+        print(
+            "  make setup ARGS=--all    include optional modules (imageCLI, roxabi-vault)"
+        )
         print()
 
 

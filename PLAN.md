@@ -54,3 +54,18 @@ Tracked in: https://github.com/Roxabi/lyra/issues/79
 ## 7. Lyra #83 — Memory layer
 L0 compaction, identity anchor, session lifecycle for the Lyra agent.
 Tracked in: https://github.com/Roxabi/lyra/issues/83
+
+## 8. Lyra — Multi-bot registry upgrade
+The adapter registry is currently single-keyed per platform (`dict[str, ChannelAdapter]`)
+and `.env` holds one token per platform. The binding key already includes `bot_id`
+(`(platform, bot_id, scope_id)` → `(agent, pool_id)`) — the dispatch side needs to catch up.
+
+Changes required:
+- Adapter registry key: `str` → `(platform, bot_id)`
+- `dispatch_response`: route by `(msg.platform, msg.bot_id)` instead of `msg.channel`
+- `TelegramAdapter`: manage one aiogram `Bot` per token
+- Config: replace single `TELEGRAM_TOKEN=` with structured config (e.g. `bots.toml`) or
+  numbered env vars (`TELEGRAM_TOKEN_1`, `TELEGRAM_TOKEN_2`)
+
+Not a blocker for #79 or #83. Implement after both are merged.
+Tracked in: https://github.com/Roxabi/lyra/issues/136

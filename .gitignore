@@ -3,3 +3,7 @@ supervisor.sock
 logs/
 conf.d/
 CLAUDE.local.md
+.claude/stack.yml
+
+.env
+.claude/dev-core.yml
