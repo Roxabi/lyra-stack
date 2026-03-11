@@ -1,10 +1,18 @@
 # lyra-stack
 
+[![CI](https://github.com/Roxabi/lyra-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/Roxabi/lyra-stack/actions)
+
 One-command setup for the full Lyra infrastructure on a new machine.
 
 Manages all background services (Lyra agent, TTS daemon, STT daemon) through a single
 [supervisord](http://supervisord.org/) instance. Each service is owned by its project repo —
 this repo is just the runtime hub that holds them together.
+
+## Why
+
+Running multiple AI services (agent, TTS, STT) means managing several long-lived processes across multiple repos. Without a shared supervisor, each service needs its own restart logic, log plumbing, and startup order — and a machine reboot means manually restarting everything.
+
+lyra-stack solves this with a single supervisord instance. Each project repo owns its config; this hub just wires them together. One `make start` brings everything up, and any project can register itself with `make register`.
 
 ## What's included
 
@@ -36,22 +44,26 @@ make ps
 
 ## Daily commands
 
-```bash
-cd ~/projects/lyra-stack
+All commands run from `~/projects/lyra-stack`.
 
-make ps                  # status of all services
+### Global
 
-make lyra                # lyra status
-make lyra reload         # restart lyra
-make lyra logs           # tail stdout
-make lyra errors         # tail stderr
+| Command | Description |
+|---------|-------------|
+| `make start` | Start supervisord + all services (idempotent) |
+| `make ps` | Status of all services |
 
-make tts                 # tts status
-make tts reload          # restart tts
+### Per-service
 
-make stt                 # stt status
-make stt reload          # restart stt
-```
+Replace `<svc>` with `lyra`, `tts`, or `stt`.
+
+| Command | Description |
+|---------|-------------|
+| `make <svc>` | Show service status |
+| `make <svc> reload` | Restart service |
+| `make <svc> logs` | Tail stdout |
+| `make <svc> errors` | Tail stderr |
+| `make <svc> stop` | Stop service |
 
 ## How it works
 
@@ -65,5 +77,13 @@ make stt reload          # restart stt
   voicecli_stt.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
 ```
 
-See [`~/projects/supervisor-pattern.md`](https://github.com/Roxabi/lyra/blob/main/docs/supervisor-pattern.md)
+See [`docs/supervisor-pattern.md`](docs/supervisor-pattern.md)
 for the full pattern and how to add new services.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, commit format, and PR process.
+
+## License
+
+MIT
