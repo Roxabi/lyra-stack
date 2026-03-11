@@ -1,0 +1,4 @@
+supervisord.pid
+supervisor.sock
+logs/
+conf.d/
