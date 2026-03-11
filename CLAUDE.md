@@ -1,6 +1,8 @@
+@CLAUDE.local.md
+
 # ~/projects/lyra-stack — Lyra Infrastructure
 
-Central supervisord instance for the **local** machine (ROXABITOWER, WSL2, RTX 5070 Ti).
+Central supervisord instance for the local machine.
 Manages all background services that support Lyra and its ecosystem.
 
 ## Services

@@ -86,13 +86,20 @@ def main() -> None:
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             run(f"git clone {module['repo']} {path}")
+            tag = module.get("tag", "").strip()
+            if tag:
+                print(f"       pinning to {tag}...")
+                run(f"git checkout {tag}", cwd=path)
 
         print(f"       installing...")
         run(module.get("install", "uv sync"), cwd=path)
 
-        print(f"       registering...")
-        env = {**os.environ, "LYRA_STACK_DIR": str(LYRA_STACK_DIR)}
-        subprocess.run("make register", shell=True, cwd=path, env=env, check=True)
+        if module.get("register", True):
+            print(f"       registering...")
+            env = {**os.environ, "LYRA_STACK_DIR": str(LYRA_STACK_DIR)}
+            subprocess.run("make register", shell=True, cwd=path, env=env, check=True)
+        else:
+            print(f"       skipping registration (no daemon)")
 
         cloned.append(name)
         print()
