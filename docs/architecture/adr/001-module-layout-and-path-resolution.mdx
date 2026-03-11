@@ -1,0 +1,185 @@
+---
+title: "ADR-001: Module Layout and Supervisor Path Resolution"
+description: Where modules live relative to lyra-stack and how any caller resolves the supervisord socket.
+---
+
+## Status
+
+Accepted
+
+## Context
+
+`lyra-stack` is the single supervisord hub for ROXABITOWER (WSL2, local machine). Module repos
+(lyra, voiceCLI, imageCLI, roxabi-vault) each own a `supervisor/conf.d/*.conf` file. A symlink
+from `lyra-stack/conf.d/` into each module is what plugs a module into the hub.
+
+Three cross-cutting problems surfaced at once:
+
+1. **Path problem.** Module Makefiles and their `supervisorctl.sh` wrappers must invoke
+   `supervisorctl -c <path>/supervisord.conf`. That path is currently hardcoded to
+   `$HOME/projects/lyra-stack` in several places.
+
+2. **Module placement.** The proposal introduces a `modules/` subdirectory inside lyra-stack
+   as an alternative to the current sibling layout (`~/projects/<module>`).
+
+3. **Git strategy.** With modules potentially inside lyra-stack, the question of git submodules
+   vs independent clones vs a package manager arises.
+
+4. **`make register` contract.** The command that creates the conf.d symlink and hot-reloads
+   supervisord must work regardless of where the module is cloned.
+
+5. **conf.d symlink pattern at scale.** As the number of modules grows (4+ repos, 6+ programs),
+   manual Makefile targets per-service in lyra-stack become a maintenance liability.
+
+The current Makefile already resolves its own path portably via
+`$(dir $(abspath $(lastword $(MAKEFILE_LIST))))`, so lyra-stack itself is self-contained.
+The scripts (`start.sh`, `supervisorctl.sh`) resolve via `readlink -f` — also portable.
+The gap is only the reverse direction: modules calling back into lyra-stack.
+
+## Options Considered
+
+### Option A: Modules as siblings, env var `LYRA_STACK_DIR`
+
+Modules stay at `~/projects/<module>` (current layout). A `make setup` step in lyra-stack
+writes `export LYRA_STACK_DIR=<abs-path>` to `~/.bashrc` / a sourced env file. Module
+Makefiles read `$(LYRA_STACK_DIR)`.
+
+- **Pros:**
+  - Zero change to current clone layout — existing machines are not disrupted.
+  - Each module repo remains fully independent (its own git history, own CI, own release).
+  - `make register` is simple: `ln -sf $(realpath supervisor/conf.d/*.conf) $(LYRA_STACK_DIR)/conf.d/`.
+  - Env var is the established Unix convention for "where is the hub".
+  - `LYRA_STACK_DIR` defaults gracefully: `$(or $(LYRA_STACK_DIR),$(HOME)/projects/lyra-stack)`
+    covers the common case without requiring setup on machines where the path is standard.
+
+- **Cons:**
+  - Requires one `make setup` (or manual export) on a fresh machine with a non-default path.
+  - Env var must survive sub-shells invoked by Make (it does, if exported).
+
+### Option B: Modules nested inside `lyra-stack/modules/`
+
+Module repos are cloned into `lyra-stack/modules/<name>`. lyra-stack becomes the monorepo root.
+
+- **Pros:**
+  - lyra-stack knows the absolute path to every module by construction.
+  - Single `git clone lyra-stack` + nested clones is a clear bootstrap sequence.
+
+- **Cons:**
+  - `modules/` must be in `.gitignore`; lyra-stack does not actually contain module code —
+    it just holds the directory. This is confusing for contributors and CI.
+  - `make register` must now detect whether it is running from inside `modules/` or from a
+    sibling path, adding a branch that does not exist today.
+  - Module repos lose the ability to be cloned anywhere else without breaking their
+    `supervisorctl.sh` (which now hardcodes the parent-relative path).
+  - Breaks the symmetry that production (`roxabituwer`) uses: production clones are siblings,
+    not nested. A nested layout on local creates a divergence between local and prod conventions.
+  - Any future `modules/lyra` bootstrap script that runs `make deploy` will call `git pull`
+    inside `modules/lyra` — fine, but adds cognitive overhead.
+
+### Option C: Fixed well-known socket symlink at `~/.local/share/lyra-stack/supervisor.sock`
+
+Instead of passing `-c supervisord.conf`, module callers connect to a fixed socket path that
+is always the same regardless of where lyra-stack is cloned.
+
+- **Pros:**
+  - Modules need zero knowledge of the lyra-stack clone path.
+  - `supervisorctl -s unix://~/.local/share/lyra-stack/supervisor.sock` works from anywhere.
+
+- **Cons:**
+  - `supervisord.conf` itself still uses `%(here)s` for its socket path (portable, correct).
+    A symlink at the well-known location must be created by `make setup` and kept in sync.
+  - Two socket paths exist: the real one (`lyra-stack/supervisor.sock`) and the symlink.
+    If supervisord is restarted before the symlink is refreshed, callers silently fail.
+  - `supervisorctl` requires the `-c` flag OR `-s` flag; the `-s` flag skips the config file,
+    losing access to log-path defaults. Callers that do `tail -f <logpath>` still need to know
+    where the module's logs are — which still requires knowing the clone path or another
+    convention.
+  - Adds operational complexity (stale symlinks, `make setup` drift) for a problem that Option A
+    solves more directly.
+
+### Option D: Git submodules
+
+lyra-stack declares each module as a git submodule pinned to a commit.
+
+- **Pros:**
+  - `git clone --recurse-submodules lyra-stack` is a one-command bootstrap.
+  - Explicit version pinning: lyra-stack records which commit of each module it has tested with.
+
+- **Cons:**
+  - Submodule UX is notoriously poor: `git pull` does not update submodules; detached HEAD
+    in submodules confuses contributors; CI must pass `--recurse-submodules`.
+  - Module repos are developed independently with their own release cadence. Pinning them as
+    submodules couples lyra-stack's commit history to every module bump — unnecessary overhead
+    for an infrastructure hub whose role is wiring, not version control.
+  - `make register` from inside a submodule working tree still requires knowing the parent
+    lyra-stack root, which reintroduces the path problem.
+
+## Decision
+
+**Option A: siblings + `LYRA_STACK_DIR` env var with a safe default.**
+
+Modules stay as independent sibling clones at `~/projects/<module>`. The path resolution
+contract is:
+
+```makefile
+# In each module's Makefile
+LYRA_STACK_DIR ?= $(HOME)/projects/lyra-stack
+SUPERVISORCTL   := $(LYRA_STACK_DIR)/scripts/supervisorctl.sh
+```
+
+The `?=` default covers the dominant case (standard machine layout) without requiring
+any setup step. On a machine with a non-standard path, the user sets `LYRA_STACK_DIR`
+once in their shell profile.
+
+`make register` in each module:
+
+```bash
+CONF=$(realpath supervisor/conf.d/*.conf)
+ln -sf "$CONF" "$LYRA_STACK_DIR/conf.d/$(basename $CONF)"
+"$LYRA_STACK_DIR/scripts/supervisorctl.sh" reread
+"$LYRA_STACK_DIR/scripts/supervisorctl.sh" update
+```
+
+This is already path-agnostic; the only change is replacing the hardcoded
+`$HOME/projects/lyra-stack` with `$LYRA_STACK_DIR`.
+
+**log-path discovery:** Module Makefiles hardcode their own log paths relative to
+`$(dir $(abspath $(lastword $(MAKEFILE_LIST))))` — they always know where they are.
+lyra-stack Makefile targets for `logs`/`errlogs` should be removed or delegated:
+callers use `make logs` from inside the module repo, not from lyra-stack.
+lyra-stack Makefile retains only: `start`, `stop`, `ps`, `status` (hub-level concerns).
+
+**conf.d at scale:** As the number of programs grows, the lyra-stack Makefile MUST NOT
+grow a new target per service. The hub Makefile exposes only generic targets. Per-service
+control (`make lyra reload`) lives exclusively in the module repo's own Makefile.
+
+## Consequences
+
+### Positive
+
+- No change to existing clone layout on any machine — zero migration cost.
+- Each module repo remains fully independent: own git, own CI, own deploys.
+- `LYRA_STACK_DIR ?= $(HOME)/projects/lyra-stack` is a one-line change in each module
+  Makefile; no new tooling required.
+- lyra-stack Makefile stays small and hub-focused; per-service targets are not its
+  responsibility.
+- The sibling layout matches production (`roxabituwer`) exactly — no local/prod divergence.
+- Newcomer onboarding: `git clone lyra-stack`, clone modules alongside, `make register`,
+  `make start`. No submodule friction, no nested directory confusion.
+
+### Negative
+
+- A machine with `LYRA_STACK_DIR` unset and a non-standard clone path will silently use the
+  wrong path until the user exports the var. Mitigated by: `make register` should assert
+  `LYRA_STACK_DIR` is accessible before running.
+- Module Makefiles must each independently adopt the `LYRA_STACK_DIR ?=` pattern — a small
+  but real coordination cost across repos.
+
+### Neutral
+
+- lyra-stack `conf.d/` symlinks remain absolute paths (created by `realpath`). This is
+  intentional: supervisord resolves symlink targets at startup, so absolute paths are safer
+  across directory changes.
+- The `ps` / `discover from running process` approach (Option C variant) is a valid
+  fallback for tooling that truly cannot depend on the env var, but is not needed for
+  the Makefile use case.

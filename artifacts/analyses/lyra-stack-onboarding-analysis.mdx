@@ -1,0 +1,275 @@
+---
+title: "lyra-stack Onboarding & Module Management — DX Analysis"
+description: "Product and DX analysis of the proposed hub-based installer flow for lyra-stack, covering onboarding, module acquisition, path configuration, and first-run experience."
+---
+
+## Problem Statement
+
+`lyra-stack` is currently a runtime hub with a fully manual setup: the user clones each module repo
+independently, runs `uv sync && make register` in each, then starts supervisord. This works for a
+single known machine but breaks down as the ecosystem grows (more modules) or when setting up on a
+new machine from scratch. The proposal is to evolve lyra-stack into an active installer/orchestrator
+that can pull modules on first run and accommodate user-defined layouts.
+
+## Users
+
+**Primary:** Mickael, setting up on a new local machine or re-provisioning after a reinstall.
+**Secondary:** Any Roxabi contributor who wants to run the full stack locally.
+
+Both users are technical (comfortable with git, CLI, env vars). Neither wants to read docs to
+complete setup. Both have strong opinions about where repos live on their filesystem.
+
+---
+
+## Q1 — Onboarding Flow
+
+### Recommended flow
+
+```
+git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
+cd ~/projects/lyra-stack
+make setup
+```
+
+`make setup` is the single entry point. It orchestrates everything:
+
+1. Reads `stack.yml` (module registry — see Q3).
+2. For each module: checks if the path already exists. If yes, skips. If no, prompts once:
+   `lyra not found at ~/projects/lyra. Clone? [Y/n/path]`
+3. Clones missing modules, runs their install step (`uv sync` or equivalent, read from `stack.yml`).
+4. Runs `make register` inside each module (creates symlink in `conf.d/`).
+5. Starts supervisord.
+6. Prints `make ps` output.
+
+**Total user interaction on a fresh machine:** one `make setup`, answer Y a few times (or zero times
+if defaults are accepted). Target: under 3 minutes wall-clock on a fast connection.
+
+### Why not a shell script?
+
+`make setup` delegates to a script (`scripts/setup.sh`) but the Makefile target is the stable
+interface. It matches the existing `make start` / `make ps` / `make register` vocabulary. Users
+already know where to look.
+
+---
+
+## Q2 — Module Acquisition Strategy
+
+### Recommendation: independent clones managed by lyra-stack, not git submodules
+
+**Reject git submodules.** Submodules pin a commit, require `git submodule update --init` on every
+pull, and confuse contributors who are not fluent with them. The modules are living projects — lyra
+is actively developed. Pinning is actively harmful here. Submodule UX friction is well-documented
+and disproportionate for this use case.
+
+**Reject package managers (pip install, npm install, etc.)** The modules are not libraries; they are
+runnable services with their own envs, secrets, and git histories. Treating them as packages loses
+the per-repo `git pull` / `git log` / `make deploy` workflow.
+
+**Use independent clones.** lyra-stack clones each module into its configured path (default:
+`~/projects/<module>`), then registers it via symlink. Each module repo stays a fully independent
+git repo. The user can `cd ~/projects/lyra && git pull` normally.
+
+`~/projects/lyra-stack/modules/` as a default clone target is acceptable but introduces a subtle
+problem: modules inside the hub repo look like they are "part of" lyra-stack to `git status`. Better
+default is `~/projects/<module>` (sibling directories), which matches the current layout and avoids
+any confusion. The `modules/` subdirectory should be available as an option, not the default.
+
+---
+
+## Q3 — "Choose a Different Path" Implementation
+
+### Recommendation: `stack.yml` config file, no interactive prompts for paths
+
+**Reject runtime interactive prompts for path selection.** Prompts during `make setup` are fine for
+yes/no confirmation, but asking "where do you want to clone lyra?" mid-flow is a DX smell. It is
+not repeatable, not version-controlled, and breaks unattended runs (CI, remote provisioning).
+
+**Use `stack.yml` as the module registry.** It lives at the root of lyra-stack and is committed.
+Example shape:
+
+```yaml
+# stack.yml
+modules:
+  lyra:
+    repo: git@github.com:Roxabi/lyra.git
+    path: ~/projects/lyra          # default; user overrides here
+    install: uv sync
+    optional: false
+  voiceCLI:
+    repo: git@github.com:Roxabi/voiceCLI.git
+    path: ~/projects/voiceCLI
+    install: uv sync
+    optional: false
+  imageCLI:
+    repo: git@github.com:Roxabi/imageCLI.git
+    path: ~/projects/imageCLI
+    install: uv sync
+    optional: true
+  roxabi-vault:
+    repo: git@github.com:Roxabi/roxabi-vault.git
+    path: ~/projects/roxabi-vault
+    install: uv sync
+    optional: true
+```
+
+The user edits `stack.yml` before running `make setup` if they want a different path. This is a
+one-time edit. It is readable, diffable, and composable.
+
+**`stack.yml.example` pattern (do not use).** A common pattern is committing `stack.yml.example`
+and gitignoring `stack.yml` so users can customize without polluting git status. Avoid this here:
+the defaults are sensible and most users will not change them. Gitignoring the registry makes the
+hub harder to reason about. Keep `stack.yml` committed with defaults.
+
+**Optional flag on modules.** `optional: true` means `make setup` skips the module unless
+`--all` is passed or the user explicitly confirms. This handles `roxabi-vault` and `imageCLI`
+which not every machine needs.
+
+---
+
+## Q4 — Minimum Viable First-Run Experience
+
+The MVP is defined by the smallest change that makes a fresh machine setup not require reading the
+README.
+
+### MVP scope
+
+1. `stack.yml` with module registry (paths, repos, install commands).
+2. `scripts/setup.sh` that reads `stack.yml`, clones missing modules, runs install, runs register.
+3. `make setup` target that calls the script.
+4. `make setup` is idempotent: re-running on an already-set-up machine is a no-op with a clear
+   status output (not an error).
+
+### Out of MVP
+
+- Secrets/vault bootstrapping (complex, machine-specific).
+- Automatic `uv` or Python installation (too many edge cases; gate behind a preflight check that
+  prints a clear error if missing).
+- GUI or TUI.
+- Remote/SSH provisioning.
+
+### Preflight check (must-have for MVP)
+
+Before cloning anything, `make setup` runs a preflight:
+
+```
+Checking dependencies...
+  git        ✓
+  uv         ✓
+  python 3.11 ✓
+  ssh key for github.com ✓
+
+All checks passed. Proceeding with setup.
+```
+
+If any check fails: print the fix, exit 1. No partial setup.
+
+---
+
+## Q5 — DX Pitfalls to Avoid
+
+### 1. Partial setup is worse than no setup
+
+If `make setup` clones 3 of 4 modules and then fails, the user is in an ambiguous state. Mitigation:
+make each step atomic and idempotent. Clone only if the directory does not exist. Register only if
+the symlink does not exist. Supervisord `reread + update` is already idempotent.
+
+### 2. Hardcoded paths in supervisor configs will break custom paths
+
+Every module's `supervisor/conf.d/<program>.conf` likely hardcodes the absolute path to the project
+directory (e.g. `command=python -m lyra` with a `directory=~/projects/lyra`). If the user clones to
+a different path, the supervisor config is wrong. Mitigation: in `make register`, the module should
+generate its supervisor config from a template, substituting the actual clone path. This is a
+module-side concern, but lyra-stack should document the requirement in the "Adding a New Module"
+section.
+
+### 3. `~/projects/` expansion in YAML
+
+`~/projects/lyra` in a YAML file is a string, not a path. The setup script must call `expanduser()`
+(Python) or `eval echo` (bash) before using it. Trivial but easy to forget, and produces confusing
+"directory not found" errors.
+
+### 4. SSH key availability
+
+`git clone git@github.com:...` will silently hang or prompt for a passphrase if the SSH agent is
+not running. Preflight should test `ssh -T git@github.com` and exit with a clear message if it
+fails, before any cloning starts.
+
+### 5. `make setup` vs `make register` confusion
+
+Keep the distinction clear in the README:
+- `make setup` — first-time, pulls modules, registers, starts.
+- `make register` — per-module, one-shot, called by the module itself.
+
+Do not make `make setup` call `make register` in lyra-stack's own Makefile by shelling into each
+module directory in a loop that is hard to follow. Keep the orchestration in `scripts/setup.sh`
+where it is readable and testable.
+
+### 6. The `modules/` subdirectory naming
+
+If you offer `~/projects/lyra-stack/modules/lyra` as a path option, be explicit in docs that
+`~/projects/lyra-stack/modules/` is gitignored. Otherwise contributors will try to commit module
+state to the hub repo.
+
+---
+
+## Architecture Shapes
+
+Two mutually exclusive approaches for the setup script implementation:
+
+### Shape A — Bash script reading YAML with `yq`
+
+- Requires `yq` installed (add to preflight).
+- Fast to write, easy to read for ops-minded contributors.
+- Fragile on complex logic (error handling, templating).
+- Good fit if the registry stays simple.
+
+### Shape B — Python script (run via `uv run`)
+
+- `uv run python scripts/setup.py` — no venv activation needed.
+- Full Python expressiveness for path expansion, error handling, YAML parsing.
+- Consistent with the ecosystem (all modules use Python / uv).
+- Slightly more setup for the script itself, but lyra-stack already has `uv` as a dependency
+  (modules use it).
+
+**Recommendation: Shape B.** The Python script approach is more robust and consistent. `uv run` means no dependency on a pre-existing venv. The script can be tested independently.
+
+---
+
+## Constraints
+
+- Must not require Docker or any container runtime (GPU passthrough complexity on WSL2).
+- Must work on WSL2 + Ubuntu Server without changes (same script, same `stack.yml`).
+- Must remain a public repo — no secrets, no machine-specific paths committed.
+- Supervisor config ownership stays with each module repo (not centralized in lyra-stack).
+
+---
+
+## Out of Scope
+
+- Automatic Python/uv installation.
+- Windows (non-WSL) support.
+- Remote deployment orchestration (that is `make deploy` in each module).
+- Module version pinning / lockfile.
+
+---
+
+## Acceptance Criteria (for the setup feature)
+
+- [ ] `git clone` + `make setup` on a fresh machine completes without any additional steps.
+- [ ] Re-running `make setup` on an already-configured machine is a no-op with clear output.
+- [ ] User can change any module path in `stack.yml` and `make setup` respects it.
+- [ ] Preflight catches missing `git`, `uv`, or SSH key before cloning anything.
+- [ ] `optional: true` modules are skipped by default and included with `make setup --all`.
+- [ ] All hardcoded path assumptions are documented as module-side requirements in "Adding a New Module".
+
+---
+
+## Open Questions
+
+1. **`roxabi-vault` bootstrapping:** vault likely needs secrets to be seeded before lyra can start.
+   Does `make setup` need a post-clone hook step, or is vault seeding always manual?
+2. **`imageCLI`:** does it run a daemon or is it purely CLI? If CLI-only, it does not need
+   supervisord registration — `stack.yml` should support a `daemon: false` flag to skip registration.
+3. **Multi-machine coordination:** `stack.yml` paths are machine-local. On production
+   (`roxabituwer`), the clone paths may differ. Should `stack.yml` support machine-specific path
+   overrides, or is a separate `stack.prod.yml` cleaner?
