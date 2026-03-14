@@ -59,17 +59,21 @@ status ps:
 lyra:
 	$(ensure_supervisor)
 ifeq ($(SVC_CMD),reload)
-	$(SUPERVISORCTL) restart lyra
+	$(SUPERVISORCTL) restart lyra_telegram
+	$(SUPERVISORCTL) restart lyra_discord
 else ifeq ($(SVC_CMD),logs)
-	$(SUPERVISORCTL) tail -f lyra
+	$(SUPERVISORCTL) tail -f lyra_telegram
 else ifeq ($(SVC_CMD),errlogs)
-	$(SUPERVISORCTL) tail -f lyra stderr
+	$(SUPERVISORCTL) tail -f lyra_telegram stderr
 else ifeq ($(SVC_CMD),stop)
-	$(SUPERVISORCTL) stop lyra
+	$(SUPERVISORCTL) stop lyra_telegram
+	$(SUPERVISORCTL) stop lyra_discord
 else ifeq ($(SVC_CMD),start)
-	$(SUPERVISORCTL) start lyra
+	$(SUPERVISORCTL) start lyra_telegram
+	$(SUPERVISORCTL) start lyra_discord
 else
-	$(SUPERVISORCTL) status lyra
+	$(SUPERVISORCTL) status lyra_telegram
+	$(SUPERVISORCTL) status lyra_discord
 endif
 
 telegram:

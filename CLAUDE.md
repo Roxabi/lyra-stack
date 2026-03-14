@@ -10,7 +10,8 @@ Manages all background services that support Lyra and its ecosystem.
 
 | Program | Command | Purpose |
 |---------|---------|---------|
-| `lyra` | `python -m lyra` | Lyra AI agent (Telegram + Discord) |
+| `lyra_telegram` | `python -m lyra --adapter telegram` | Lyra AI agent — Telegram adapter |
+| `lyra_discord` | `python -m lyra --adapter discord` | Lyra AI agent — Discord adapter |
 | `voicecli_tts` | `voicecli serve --engine qwen-fast` | TTS daemon — keeps Qwen model warm in VRAM for zero-latency speech generation |
 | `voicecli_stt` | `voicecli stt-serve` | STT daemon — keeps faster-whisper loaded for fast dictation via `voicecli dictate` |
 
@@ -20,7 +21,8 @@ Manages all background services that support Lyra and its ecosystem.
 ~/projects/lyra-stack/
   supervisord.conf      — daemon config (socket, logs, includes conf.d)
   conf.d/               — symlinks only, each project owns its conf
-    lyra.conf           → ~/projects/lyra/supervisor/conf.d/lyra.conf
+    lyra_telegram.conf  → ~/projects/lyra/supervisor/conf.d/lyra_telegram.conf
+    lyra_discord.conf   → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
     voicecli_tts.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
     voicecli_stt.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
   scripts/
@@ -38,8 +40,14 @@ cd ~/projects/lyra-stack
 make start           # start supervisord + all services (idempotent)
 make ps              # status of all services
 
-make lyra            # show lyra status
+make lyra            # status lyra_telegram + lyra_discord
 make lyra start|reload|stop|logs|errlogs
+
+make telegram        # lyra_telegram only
+make telegram start|reload|stop|logs|errlogs
+
+make discord         # lyra_discord only
+make discord start|reload|stop|logs|errlogs
 
 make tts             # show tts status
 make tts start|reload|stop|logs|errlogs

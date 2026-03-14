@@ -18,7 +18,8 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 
 | Service | Repo | Purpose |
 |---------|------|---------|
-| `lyra` | [Roxabi/lyra](https://github.com/Roxabi/lyra) | AI agent (Telegram + Discord) |
+| `lyra_telegram` | [Roxabi/lyra](https://github.com/Roxabi/lyra) | AI agent — Telegram adapter |
+| `lyra_discord` | [Roxabi/lyra](https://github.com/Roxabi/lyra) | AI agent — Discord adapter |
 | `voicecli_tts` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | TTS daemon (Qwen, zero-latency) |
 | `voicecli_stt` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | STT daemon (Whisper, live dictation) |
 
@@ -55,7 +56,7 @@ All commands run from `~/projects/lyra-stack`.
 
 ### Per-service
 
-Replace `<svc>` with `lyra`, `tts`, or `stt`.
+Replace `<svc>` with `lyra` (both adapters), `telegram`, `discord`, `tts`, or `stt`.
 
 | Command | Description |
 |---------|-------------|
@@ -72,9 +73,10 @@ Replace `<svc>` with `lyra`, `tts`, or `stt`.
 
 ```
 ~/projects/lyra-stack/conf.d/
-  lyra.conf         → ~/projects/lyra/supervisor/conf.d/lyra.conf
-  voicecli_tts.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
-  voicecli_stt.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
+  lyra_telegram.conf → ~/projects/lyra/supervisor/conf.d/lyra_telegram.conf
+  lyra_discord.conf  → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
+  voicecli_tts.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
+  voicecli_stt.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
 ```
 
 See [`docs/supervisor-pattern.md`](docs/supervisor-pattern.md)

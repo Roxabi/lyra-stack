@@ -12,9 +12,10 @@ Its `conf.d/` contains **only symlinks** — each project repo owns its configs.
 ~/projects/lyra-stack/                              ← single supervisord (the hub)
   supervisord.conf                         ← [include] conf.d/*.conf
   conf.d/
-    lyra.conf         → ~/projects/lyra/supervisor/conf.d/lyra.conf
-    voicecli_tts.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
-    voicecli_stt.conf → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
+    lyra_telegram.conf → ~/projects/lyra/supervisor/conf.d/lyra_telegram.conf
+    lyra_discord.conf  → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
+    voicecli_tts.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
+    voicecli_stt.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
   logs/                                    ← supervisord own logs only
   scripts/
     start.sh
@@ -193,7 +194,9 @@ cd ~/projects/lyra-stack && make ps
 `~/projects/lyra-stack/Makefile` exposes delegate targets for convenience:
 
 ```bash
-make lyra              # lyra status (or: make lyra start|stop|reload|logs|errlogs)
+make lyra              # lyra_telegram + lyra_discord status (or: start|stop|reload|logs|errlogs)
+make telegram          # lyra_telegram only (same actions)
+make discord           # lyra_discord only (same actions)
 make tts               # voicecli_tts status (same actions)
 make stt               # voicecli_stt status (same actions)
 make ps                # status of all programs
@@ -207,6 +210,7 @@ make setup ARGS=--all  # include optional modules
 
 | Program | Project | Config |
 |---------|---------|--------|
-| `lyra` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra.conf` |
+| `lyra_telegram` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra_telegram.conf` |
+| `lyra_discord` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra_discord.conf` |
 | `voicecli_tts` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_tts.conf` |
 | `voicecli_stt` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_stt.conf` |
