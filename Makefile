@@ -12,7 +12,7 @@ endef
 
 # ── Parse: make <service> <action> ───────────────────────────────────────────
 
-ifneq (,$(filter lyra stt tts,$(firstword $(MAKECMDGOALS))))
+ifneq (,$(filter lyra stt tts telegram discord,$(firstword $(MAKECMDGOALS))))
   SVC_CMD := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   ifneq (,$(SVC_CMD))
     $(eval $(SVC_CMD):;@:)
@@ -21,7 +21,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts help
+.PHONY: setup start stop status ps lyra stt tts telegram discord help
 
 .DEFAULT_GOAL := help
 
@@ -33,9 +33,11 @@ help:
 	@echo "  stop             stop all services + supervisord"
 	@echo "  ps               status of all services"
 	@echo ""
-	@echo "  lyra start|stop|reload|logs|errlogs|status"
-	@echo "  tts  start|stop|reload|logs|errlogs|status"
-	@echo "  stt  start|stop|reload|logs|errlogs|status"
+	@echo "  lyra     start|stop|reload|logs|errlogs|status"
+	@echo "  tts      start|stop|reload|logs|errlogs|status"
+	@echo "  stt      start|stop|reload|logs|errlogs|status"
+	@echo "  telegram start|stop|reload|logs|errlogs|status"
+	@echo "  discord  start|stop|reload|logs|errlogs|status"
 	@echo ""
 	@echo "  Set LYRA_STACK_DIR to override hub location (default: ~/projects/lyra-stack)"
 
@@ -68,6 +70,38 @@ else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start lyra
 else
 	$(SUPERVISORCTL) status lyra
+endif
+
+telegram:
+	$(ensure_supervisor)
+ifeq ($(SVC_CMD),reload)
+	$(SUPERVISORCTL) restart lyra_telegram
+else ifeq ($(SVC_CMD),logs)
+	$(SUPERVISORCTL) tail -f lyra_telegram
+else ifeq ($(SVC_CMD),errlogs)
+	$(SUPERVISORCTL) tail -f lyra_telegram stderr
+else ifeq ($(SVC_CMD),stop)
+	$(SUPERVISORCTL) stop lyra_telegram
+else ifeq ($(SVC_CMD),start)
+	$(SUPERVISORCTL) start lyra_telegram
+else
+	$(SUPERVISORCTL) status lyra_telegram
+endif
+
+discord:
+	$(ensure_supervisor)
+ifeq ($(SVC_CMD),reload)
+	$(SUPERVISORCTL) restart lyra_discord
+else ifeq ($(SVC_CMD),logs)
+	$(SUPERVISORCTL) tail -f lyra_discord
+else ifeq ($(SVC_CMD),errlogs)
+	$(SUPERVISORCTL) tail -f lyra_discord stderr
+else ifeq ($(SVC_CMD),stop)
+	$(SUPERVISORCTL) stop lyra_discord
+else ifeq ($(SVC_CMD),start)
+	$(SUPERVISORCTL) start lyra_discord
+else
+	$(SUPERVISORCTL) status lyra_discord
 endif
 
 stt:
