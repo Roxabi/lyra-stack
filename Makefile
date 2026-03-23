@@ -6,15 +6,17 @@ SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
 define ensure_supervisor
 	@if [ ! -f "$(SUPERVISOR_PID)" ] || ! kill -0 $$(cat "$(SUPERVISOR_PID)" 2>/dev/null) 2>/dev/null; then \
 		echo "supervisord not running, starting..."; \
-		$(SUPERVISOR_START); \
+		$(SUPERVISOR_START) > /dev/null; \
 	fi
 endef
 
 # ── Parse: make <service> <action> ───────────────────────────────────────────
 
+IS_SVC_ACTION :=
 ifneq (,$(filter lyra stt tts telegram discord,$(firstword $(MAKECMDGOALS))))
   SVC_CMD := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   ifneq (,$(SVC_CMD))
+    IS_SVC_ACTION := 1
     $(eval $(SVC_CMD):;@:)
   endif
 endif
@@ -44,6 +46,7 @@ help:
 setup:
 	@python3 scripts/setup.py $(ARGS)
 
+ifndef IS_SVC_ACTION
 start:
 	$(SUPERVISOR_START)
 
@@ -55,6 +58,7 @@ stop:
 status ps:
 	$(ensure_supervisor)
 	$(SUPERVISORCTL) status
+endif
 
 lyra:
 	$(ensure_supervisor)
