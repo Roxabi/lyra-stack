@@ -2,6 +2,7 @@
   "allowlist": [
     "aiohttp",
     "chatterbox-tts",
+    "cryptography",
     "cuda-bindings",
     "llvmlite",
     "lyra",
@@ -27,6 +28,7 @@
     "pkuseg",
     "protobuf",
     "pykakasi",
+    "pyromark",
     "python-dateutil",
     "regex",
     "s3tokenizer",
