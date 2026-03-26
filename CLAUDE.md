@@ -14,6 +14,7 @@ Manages all background services that support Lyra and its ecosystem.
 | `lyra_discord` | `python -m lyra --adapter discord` | Lyra AI agent — Discord adapter |
 | `voicecli_tts` | `voicecli serve --engine qwen-fast` | TTS daemon — keeps Qwen model warm in VRAM for zero-latency speech generation |
 | `voicecli_stt` | `voicecli stt-serve` | STT daemon — keeps faster-whisper loaded for fast dictation via `voicecli dictate` |
+| `diagrams` | `python3 serve.py` | Diagrams gallery — serves `~/.agent/diagrams` with live-reload on `localhost:8080` |
 
 ## Layout
 
@@ -25,6 +26,8 @@ Manages all background services that support Lyra and its ecosystem.
     lyra_discord.conf   → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
     voicecli_tts.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
     voicecli_stt.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
+    diagrams.conf       → ~/projects/lyra-stack/diagrams/conf.d/diagrams.conf
+  diagrams/             — diagrams gallery server (owned by lyra-stack)
   scripts/
     start.sh            — start supervisord (idempotent)
     supervisorctl.sh    — supervisorctl wrapper (correct socket path)
@@ -54,6 +57,9 @@ make tts start|reload|stop|logs|errlogs
 
 make stt             # show stt status
 make stt start|reload|stop|logs|errlogs
+
+make diagrams        # show diagrams status
+make diagrams start|reload|stop|logs|errlogs
 ```
 
 ## Adding a New Service

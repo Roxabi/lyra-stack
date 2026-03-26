@@ -214,3 +214,4 @@ make setup ARGS=--all  # include optional modules
 | `lyra_discord` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra_discord.conf` |
 | `voicecli_tts` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_tts.conf` |
 | `voicecli_stt` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_stt.conf` |
+| `diagrams` | `~/projects/lyra-stack` | `lyra-stack/diagrams/conf.d/diagrams.conf` |

@@ -13,7 +13,7 @@ endef
 # ── Parse: make <service> <action> ───────────────────────────────────────────
 
 IS_SVC_ACTION :=
-ifneq (,$(filter lyra stt tts telegram discord,$(firstword $(MAKECMDGOALS))))
+ifneq (,$(filter lyra stt tts telegram discord diagrams,$(firstword $(MAKECMDGOALS))))
   SVC_CMD := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   ifneq (,$(SVC_CMD))
     IS_SVC_ACTION := 1
@@ -23,7 +23,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts telegram discord help
+.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams help
 
 .DEFAULT_GOAL := help
 
@@ -40,6 +40,7 @@ help:
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
+	@echo "  diagrams start|stop|reload|logs|errlogs|status"
 	@echo ""
 	@echo "  Set LYRA_STACK_DIR to override hub location (default: ~/projects/lyra-stack)"
 
@@ -142,4 +143,20 @@ else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start voicecli_tts
 else
 	$(SUPERVISORCTL) status voicecli_tts
+endif
+
+diagrams:
+	$(ensure_supervisor)
+ifeq ($(SVC_CMD),reload)
+	$(SUPERVISORCTL) restart diagrams
+else ifeq ($(SVC_CMD),logs)
+	$(SUPERVISORCTL) tail -f diagrams
+else ifeq ($(SVC_CMD),errlogs)
+	$(SUPERVISORCTL) tail -f diagrams stderr
+else ifeq ($(SVC_CMD),stop)
+	$(SUPERVISORCTL) stop diagrams
+else ifeq ($(SVC_CMD),start)
+	$(SUPERVISORCTL) start diagrams
+else
+	$(SUPERVISORCTL) status diagrams
 endif
