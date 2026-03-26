@@ -16,17 +16,20 @@ Its `conf.d/` contains **only symlinks** — each project repo owns its configs.
     lyra_discord.conf  → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
     voicecli_tts.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
     voicecli_stt.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
-  logs/                                    ← supervisord own logs only
   scripts/
     start.sh
     supervisorctl.sh
+
+~/.local/state/
+  lyra-stack/logs/                         ← supervisord + diagrams logs
+  lyra/logs/                               ← lyra process + app logs
+  voicecli/logs/                           ← voicecli process logs
 
 ~/projects/<project>/supervisor/
   conf.d/<program>.conf                    ← source of truth (checked into git)
   scripts/
     run.sh                                 ← sources .env, then exec's the daemon
     supervisorctl.sh                       ← delegates to ~/projects/lyra-stack/
-  logs/                                    ← project's runtime logs (gitignored)
 ```
 
 **Rule:** configs live in the project repo. `~/projects/lyra-stack/conf.d/` never contains real files.
@@ -53,7 +56,7 @@ Every project with daemons must have:
 
 ### 1. `supervisor/conf.d/<program>.conf`
 The supervisord program definition. Checked into git. Points to the run wrapper script.
-Logs write to the project's own `supervisor/logs/` directory.
+Logs write to `~/.local/state/<app>/logs/` (XDG Base Directory spec).
 
 ```ini
 [program:myproject]
@@ -66,10 +69,10 @@ startretries=3
 stopwaitsecs=10
 stopasgroup=true
 killasgroup=true
-stdout_logfile=%(ENV_HOME)s/projects/myproject/supervisor/logs/myproject.log
+stdout_logfile=%(ENV_HOME)s/.local/state/myproject/logs/myproject.log
 stdout_logfile_maxbytes=10MB
 stdout_logfile_backups=3
-stderr_logfile=%(ENV_HOME)s/projects/myproject/supervisor/logs/myproject_error.log
+stderr_logfile=%(ENV_HOME)s/.local/state/myproject/logs/myproject_error.log
 stderr_logfile_maxbytes=5MB
 stderr_logfile_backups=3
 ```
@@ -94,11 +97,10 @@ STACK_DIR="${LYRA_STACK_DIR:-$HOME/projects/lyra-stack}"
 exec supervisorctl -c "$STACK_DIR/supervisord.conf" "$@"
 ```
 
-### 4. `supervisor/logs/` — gitignored
-Each project writes its own runtime logs here. Add to `.gitignore`:
-```
-supervisor/logs/
-```
+### 4. Log directory — XDG-compliant
+Logs write to `~/.local/state/<app>/logs/` per the XDG Base Directory spec.
+The `make register` target creates the directory. No `.gitignore` entry needed since
+logs are outside the project tree.
 
 ### 5. `make register` — idempotent, run once on new machine
 Creates the symlink in `~/projects/lyra-stack/conf.d/` and signals supervisord to pick it up.
@@ -112,6 +114,7 @@ register:
 		echo "Error: $(LYRA_STACK_DIR) not found. Set up the global supervisor first."; \
 		exit 1; \
 	fi
+	@mkdir -p "$(HOME)/.local/state/myproject/logs"
 	@ln -sf "$(abspath supervisor/conf.d/myproject.conf)" \
 		"$(LYRA_STACK_DIR)/conf.d/myproject.conf"
 	@if [ -S "$(LYRA_STACK_DIR)/supervisor.sock" ]; then \
@@ -178,14 +181,13 @@ cd ~/projects/lyra-stack && make ps
 
 ## Adding a new project
 
-1. Add `supervisor/conf.d/<program>.conf` (use the template above — `command=` → wrapper script)
+1. Add `supervisor/conf.d/<program>.conf` (use the template above — logs → `~/.local/state/<app>/logs/`)
 2. Add `supervisor/scripts/run.sh` (sources `.env`, execs the daemon)
 3. Add `supervisor/scripts/supervisorctl.sh` (copy from any existing project)
-4. Add `supervisor/logs/` to `.gitignore`
-5. Add `make register` and `make <service>` targets to the project Makefile
-6. Add the module to `~/projects/lyra-stack/stack.toml`
-7. Run `make register` on each machine
-8. Add the program to the table in `~/projects/CLAUDE.md`
+4. Add `make register` and `make <service>` targets to the project Makefile
+5. Add the module to `~/projects/lyra-stack/stack.toml`
+6. Run `make register` on each machine
+7. Add the program to the table in `~/projects/CLAUDE.md`
 
 ---
 

@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 SUPERVISOR_DIR="$(dirname "$SCRIPT_DIR")"
 
-mkdir -p "$SUPERVISOR_DIR/logs"
+mkdir -p "$HOME/.local/state/lyra-stack/logs" "$HOME/.local/state/lyra/logs" "$HOME/.local/state/voicecli/logs"
 
 if [ -f "$SUPERVISOR_DIR/supervisord.pid" ]; then
     PID=$(cat "$SUPERVISOR_DIR/supervisord.pid")

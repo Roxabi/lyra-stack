@@ -64,9 +64,9 @@ make diagrams start|reload|stop|logs|errlogs
 
 ## Adding a New Service
 
-1. Add `supervisor/conf.d/<program>.conf` to the project repo (logs → project's `supervisor/logs/`)
+1. Add `supervisor/conf.d/<program>.conf` to the project repo (logs → `~/.local/state/<app>/logs/`)
 2. Add `supervisor/scripts/supervisorctl.sh` pointing to `$HOME/lyra-stack/supervisord.conf`
-3. Add `supervisor/logs/` to `.gitignore`
+3. Logs go to `~/.local/state/<app>/logs/` (created by `make register`)
 4. Add `make register` and service targets to the project Makefile
 5. Run `make register` — creates the symlink and signals supervisord
 
