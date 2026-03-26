@@ -42,7 +42,7 @@ help:
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
-	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du"
+	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy"
 	@echo ""
 	@echo "  deploy           git pull + rsync ~/.agent/ to production"
 	@echo ""
@@ -168,6 +168,7 @@ else ifeq ($(SVC_CMD),push)
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
+		--exclude "_dist/**" \
 		-v
 else ifeq ($(SVC_CMD),pull)
 	@echo "── pull Drive → local ──"
@@ -176,6 +177,7 @@ else ifeq ($(SVC_CMD),pull)
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
+		--exclude "_dist/**" \
 		-v
 else ifeq ($(SVC_CMD),sync)
 	@echo "── push local → Drive ──"
@@ -184,6 +186,7 @@ else ifeq ($(SVC_CMD),sync)
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
+		--exclude "_dist/**" \
 		-v
 	@echo "── pull Drive → local ──"
 	rclone copy SyncLyra:agent-archive/ ~/.agent/ \
@@ -191,13 +194,21 @@ else ifeq ($(SVC_CMD),sync)
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
+		--exclude "_dist/**" \
 		-v
+else ifeq ($(SVC_CMD),build)
+	@cd ~/.agent && bash build.sh
+else ifeq ($(SVC_CMD),deploy)
+	@cd ~/.agent && bash build.sh
+	@echo "▸ Deploying to Cloudflare Pages…"
+	@CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams
 else ifeq ($(SVC_CMD),du)
 	@du -sh ~/.agent/*/
 else
 	$(SUPERVISORCTL) status diagrams
 endif
 
+ifndef IS_SVC_ACTION
 deploy:
 	@echo "Deploying to production ($(MACHINE1))..."
 	@echo "── git pull ──"
@@ -208,5 +219,7 @@ deploy:
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
+		--exclude "_dist/" \
 		~/.agent/ $(MACHINE1):~/.agent/
 	@echo "Done."
+endif
