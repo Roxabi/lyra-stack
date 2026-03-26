@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""lyra-stack setup — clone and register modules, start supervisord."""
+"""lyra-stack setup — clone and register modules, scaffold config, start supervisord."""
 
 import os
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -41,6 +42,14 @@ def check_prereqs() -> bool:
             "uv --version",
             "https://docs.astral.sh/uv/getting-started/installation/",
         ),
+        "supervisord": (
+            "supervisord --version",
+            "Run: uv tool install supervisor",
+        ),
+        "claude": (
+            "claude --version",
+            "Run: npm install -g @anthropic-ai/claude-code",
+        ),
         "ssh": ("ssh -T git@github.com", None),  # exits 1 on success for GitHub
     }
     print("Checking prerequisites...")
@@ -56,8 +65,89 @@ def check_prereqs() -> bool:
             failed.append(name)
     if failed:
         print("\nFix the above before running setup.")
+        print("Tip: run scripts/provision.sh to install all prerequisites.")
         return False
     return True
+
+
+# ── Config scaffolding ───────────────────────────────────────────────────────
+
+
+def scaffold_env(lyra_dir: Path) -> None:
+    """Copy .env.example → .env if missing."""
+    env_file = lyra_dir / ".env"
+    example = lyra_dir / ".env.example"
+    if env_file.exists():
+        print("  ✓  .env already exists")
+        return
+    if not example.exists():
+        print("  ✗  .env.example not found — skipping")
+        return
+    shutil.copy(example, env_file)
+    print("  ✓  .env created from .env.example")
+    print("       → Edit ~/projects/lyra/.env and fill in your tokens")
+
+
+def scaffold_config_toml(lyra_dir: Path) -> None:
+    """Copy config.toml.example → config.toml if missing."""
+    config_file = lyra_dir / "config.toml"
+    example = lyra_dir / "config.toml.example"
+    if config_file.exists():
+        print("  ✓  config.toml already exists")
+        return
+    if not example.exists():
+        print("  ✗  config.toml.example not found — skipping")
+        return
+    shutil.copy(example, config_file)
+    print("  ✓  config.toml created from config.toml.example")
+    print("       → Edit ~/projects/lyra/config.toml and fill in your user IDs")
+
+
+def symlink_voicecli(voicecli_dir: Path) -> None:
+    """Symlink voicecli venv binary to ~/.local/bin/."""
+    venv_bin = voicecli_dir / ".venv" / "bin" / "voicecli"
+    local_bin = Path.home() / ".local" / "bin" / "voicecli"
+    if local_bin.exists() or local_bin.is_symlink():
+        print("  ✓  voicecli already on PATH")
+        return
+    if not venv_bin.exists():
+        print("  ✗  voicecli venv binary not found — skipping symlink")
+        return
+    local_bin.parent.mkdir(parents=True, exist_ok=True)
+    local_bin.symlink_to(venv_bin)
+    print(f"  ✓  voicecli symlinked → {local_bin}")
+
+
+def init_agents(lyra_dir: Path) -> None:
+    """Run lyra agent init to seed the DB from TOML files."""
+    agent_init = lyra_dir / ".venv" / "bin" / "lyra"
+    if not agent_init.exists():
+        print("  ✗  lyra CLI not found in venv — skipping agent init")
+        return
+    result = subprocess.run(
+        f"{agent_init} agent init",
+        shell=True,
+        cwd=lyra_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        print("  ✓  lyra agent init — agents seeded into DB")
+    else:
+        # Non-fatal — may fail if DB already has agents
+        print(f"  !  lyra agent init skipped ({result.stderr.strip() or 'already initialized'})")
+
+
+def create_log_dirs() -> None:
+    """Create XDG-compliant log directories."""
+    state = Path.home() / ".local" / "state"
+    for app in ("lyra", "voicecli", "lyra-stack"):
+        log_dir = state / app / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+    print("  ✓  Log directories created (~/.local/state/*/logs/)")
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
@@ -76,7 +166,11 @@ def main() -> None:
         sys.exit(1)
 
     print()
-    cloned = []
+
+    # ── Phase 1: Clone + install + register ──────────────────────────────────
+
+    lyra_dir = None
+    voicecli_dir = None
 
     for name, module in modules.items():
         optional = module.get("optional", False)
@@ -85,6 +179,11 @@ def main() -> None:
             continue
 
         path = Path(module["path"]).expanduser()
+
+        if name == "lyra":
+            lyra_dir = path
+        elif name == "voiceCLI":
+            voicecli_dir = path
 
         if path.exists():
             print(f"  ✓  {name}  (already at {path})")
@@ -109,21 +208,93 @@ def main() -> None:
         else:
             print("       skipping registration (no daemon)")
 
-        cloned.append(name)
         print()
+
+    # ── Phase 2: Post-setup scaffolding ──────────────────────────────────────
+
+    print("Post-setup")
+    print("─" * 40)
+    print()
+
+    create_log_dirs()
+
+    if voicecli_dir and voicecli_dir.exists():
+        symlink_voicecli(voicecli_dir)
+
+    if lyra_dir and lyra_dir.exists():
+        scaffold_env(lyra_dir)
+        scaffold_config_toml(lyra_dir)
+        init_agents(lyra_dir)
+
+    print()
+
+    # ── Phase 3: Start supervisord ───────────────────────────────────────────
 
     print("Starting supervisord...")
     run(str(LYRA_STACK_DIR / "scripts" / "start.sh"))
 
     print()
     print("─" * 40)
-    print("Done.")
+    print("Setup complete!")
     print()
     print("  make ps              status of all services")
     print("  make lyra reload     restart lyra")
     print("  make tts reload      restart voicecli_tts")
     print("  make stt reload      restart voicecli_stt")
     print()
+
+    # ── Remaining manual steps ───────────────────────────────────────────────
+
+    manual_steps = []
+
+    if lyra_dir:
+        env_file = lyra_dir / ".env"
+        config_file = lyra_dir / "config.toml"
+        if env_file.exists():
+            # Check if tokens are filled in
+            content = env_file.read_text()
+            if "TELEGRAM_TOKEN=\n" in content or "TELEGRAM_TOKEN=" not in content:
+                manual_steps.append(
+                    f"Fill in bot tokens:\n"
+                    f"     nano {lyra_dir}/.env\n"
+                    f"     → TELEGRAM_TOKEN, DISCORD_TOKEN, etc.\n"
+                    f"     → Get Telegram token from @BotFather\n"
+                    f"     → Get Discord token from discord.com/developers"
+                )
+        if config_file.exists():
+            content = config_file.read_text()
+            if "owner_users = []" in content:
+                manual_steps.append(
+                    f"Fill in your user IDs:\n"
+                    f"     nano {lyra_dir}/config.toml\n"
+                    f"     → Telegram ID: message @userinfobot\n"
+                    f"     → Discord ID: Settings → Advanced → Developer Mode"
+                )
+
+    # Check if Claude is authenticated
+    result = subprocess.run(
+        "claude --version", shell=True, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        manual_steps.append("Install and authenticate Claude CLI:\n     claude")
+    else:
+        # Claude is installed but might not be authenticated
+        manual_steps.append(
+            "Authenticate Claude CLI (if not already done):\n     claude"
+        )
+
+    manual_steps.append(
+        "Add bot tokens to the credential store:\n"
+        "     cd ~/projects/lyra && lyra bot add"
+    )
+
+    if manual_steps:
+        print("Remaining manual steps:")
+        print()
+        for i, step in enumerate(manual_steps, 1):
+            print(f"  {i}. {step}")
+            print()
+
     if include_optional is False and any(m.get("optional") for m in modules.values()):
         print(
             "  make setup ARGS=--all    include optional modules (imageCLI, roxabi-vault)"

@@ -24,6 +24,8 @@ ADMIN_USER="${ADMIN_USER:-$(whoami)}"
 AGENT_USER="${AGENT_USER:-lyra}"
 info "Running setup for admin: $ADMIN_USER, agent: $AGENT_USER"
 
+# ── System packages ──────────────────────────────────────────────────────────
+
 section "System update"
 sudo apt update && sudo apt upgrade -y
 
@@ -31,7 +33,7 @@ section "Base packages"
 sudo apt install -y \
   curl wget git htop nvtop \
   fail2ban ufw \
-  build-essential \
+  build-essential python3-dev portaudio19-dev \
   ffmpeg
 
 section "moviepy (dedicated venv)"
@@ -52,6 +54,8 @@ else
   warn "Reboot required after script finishes to activate NVIDIA drivers."
   NEEDS_REBOOT=true
 fi
+
+# ── Security ─────────────────────────────────────────────────────────────────
 
 section "SSH hardening"
 SSHD_CONF="/etc/ssh/sshd_config.d/lyra.conf"
@@ -87,6 +91,8 @@ else
   info "fail2ban active."
 fi
 
+# ── Boot ─────────────────────────────────────────────────────────────────────
+
 section "GRUB — default Linux"
 GRUB_CHANGED=false
 if ! grep -q "GRUB_DISABLE_OS_PROBER=false" /etc/default/grub; then
@@ -108,6 +114,8 @@ else
   info "GRUB already configured."
 fi
 
+# ── Users ────────────────────────────────────────────────────────────────────
+
 section "Agent account ($AGENT_USER)"
 if id "$AGENT_USER" &>/dev/null; then
   warn "User '$AGENT_USER' already exists, skipping."
@@ -122,41 +130,111 @@ else
   warn "Add your agent SSH public key to /home/$AGENT_USER/.ssh/authorized_keys"
 fi
 
-section "External tools (ADR-010: Install, Wrap, Declare)"
-# System CLIs used by Lyra agents and roxabi-plugins skills.
-# Each tool is installed on PATH; wrapped by a skill in roxabi-plugins;
-# declared in agent TOML config. See docs/architecture/adr/010-*.mdx.
+# ── GitHub SSH ───────────────────────────────────────────────────────────────
 
-if command -v voicecli &>/dev/null; then
-  info "voicecli already installed."
+section "GitHub SSH host key"
+if ssh-keygen -F github.com &>/dev/null; then
+  info "GitHub host key already in known_hosts."
 else
-  if command -v uv &>/dev/null; then
-    out=$(uv tool install git+https://github.com/roxabi/voiceCLI 2>&1) && info "voicecli installed." || warn "voicecli install failed: $out"
-  else
-    warn "uv not found, skipping voicecli install. Run: uv tool install voicecli"
-  fi
+  ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
+  info "GitHub host key added to known_hosts."
 fi
+
+# Verify GitHub SSH authentication
+if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+  info "GitHub SSH authentication OK."
+else
+  warn "GitHub SSH not authenticated. Add your SSH key at https://github.com/settings/keys"
+  warn "Your public key: $(cat "$HOME/.ssh/id_ed25519.pub" 2>/dev/null || echo 'no key found — run ssh-keygen first')"
+fi
+
+# ── Dev tools ────────────────────────────────────────────────────────────────
+
+section "uv (Python package manager)"
+if command -v uv &>/dev/null; then
+  info "uv already installed ($(uv --version))."
+else
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  info "uv installed ($(uv --version))."
+fi
+
+section "supervisord (process manager)"
+if command -v supervisord &>/dev/null; then
+  info "supervisord already installed."
+else
+  uv tool install supervisor
+  info "supervisord installed."
+fi
+
+section "Node.js"
+if command -v node &>/dev/null; then
+  info "Node.js already installed ($(node --version))."
+else
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo apt install -y nodejs
+  info "Node.js installed ($(node --version))."
+fi
+
+section "Claude Code CLI"
+if command -v claude &>/dev/null; then
+  info "Claude CLI already installed."
+else
+  npm install -g @anthropic-ai/claude-code
+  info "Claude CLI installed. Run 'claude' to authenticate."
+fi
+
+# ── External tools ───────────────────────────────────────────────────────────
+
+section "External tools (ADR-010: Install, Wrap, Declare)"
 
 if command -v imagecli &>/dev/null; then
   info "imagecli already installed."
 else
-  if command -v uv &>/dev/null; then
-    out=$(uv tool install git+https://github.com/roxabi/imageCLI 2>&1) && info "imagecli installed." || warn "imagecli install failed: $out"
-  else
-    warn "uv not found, skipping imagecli install. Run: uv tool install imagecli"
-  fi
+  out=$(uv tool install git+https://github.com/roxabi/imageCLI 2>&1) && info "imagecli installed." || warn "imagecli install failed: $out"
 fi
 
 # Google Workspace CLI — see issue #65.
-# Install: https://github.com/googleworkspace/cli
 if command -v gws &>/dev/null; then
   info "gws already installed."
 else
   warn "gws not installed. See: https://github.com/googleworkspace/cli"
 fi
 
+# ── Git config ───────────────────────────────────────────────────────────────
+
+section "Git config"
+if git config --global user.name &>/dev/null; then
+  info "Git user.name: $(git config --global user.name)"
+else
+  read -rp "Git user.name: " GIT_NAME
+  git config --global user.name "$GIT_NAME"
+fi
+if git config --global user.email &>/dev/null; then
+  info "Git user.email: $(git config --global user.email)"
+else
+  read -rp "Git user.email: " GIT_EMAIL
+  git config --global user.email "$GIT_EMAIL"
+fi
+
+# ── Done ─────────────────────────────────────────────────────────────────────
+
 section "Done"
-info "Setup complete — admin: $ADMIN_USER, agent: $AGENT_USER"
+info "Provisioning complete — admin: $ADMIN_USER, agent: $AGENT_USER"
+
 if [ "${NEEDS_REBOOT:-false}" = true ]; then
   warn "NVIDIA drivers installed — reboot now: sudo reboot"
+  warn "After reboot, continue with the next step."
+else
+  echo ""
+  info "Next steps:"
+  echo "  1. Clone lyra-stack and run setup:"
+  echo ""
+  echo "     git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack"
+  echo "     cd ~/projects/lyra-stack && make setup"
+  echo ""
+  echo "  2. Authenticate Claude CLI:"
+  echo ""
+  echo "     claude"
+  echo ""
 fi

@@ -26,20 +26,22 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 ## One-shot setup
 
 ```bash
-# 1. Clone this repo
+# 1. Provision the machine (system packages, uv, supervisord, Claude CLI, etc.)
+curl -fsSL https://raw.githubusercontent.com/Roxabi/lyra-stack/main/scripts/provision.sh | bash
+
+# 2. Clone this repo and run setup (clones modules, installs deps, registers, starts)
 git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
+cd ~/projects/lyra-stack && make setup
 
-# 2. Clone and register each project
-git clone git@github.com:Roxabi/lyra.git ~/projects/lyra
-git clone git@github.com:Roxabi/voiceCLI.git ~/projects/voiceCLI
+# 3. Configure (fill in tokens + user IDs)
+nano ~/projects/lyra/.env
+nano ~/projects/lyra/config.toml
+lyra bot add
 
-cd ~/projects/lyra    && uv sync && make register
-cd ~/projects/voiceCLI && uv sync && make register
+# 4. Authenticate Claude CLI
+claude
 
-# 3. Start everything
-cd ~/projects/lyra-stack && make start
-
-# 4. Verify
+# 5. Verify
 make ps
 ```
 
