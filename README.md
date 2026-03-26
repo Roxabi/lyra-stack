@@ -16,12 +16,22 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 
 ## What's included
 
+**Core (always installed):**
+
 | Service | Repo | Purpose |
 |---------|------|---------|
 | `lyra_telegram` | [Roxabi/lyra](https://github.com/Roxabi/lyra) | AI agent — Telegram adapter |
 | `lyra_discord` | [Roxabi/lyra](https://github.com/Roxabi/lyra) | AI agent — Discord adapter |
-| `voicecli_tts` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | TTS daemon (Qwen, zero-latency) |
-| `voicecli_stt` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | STT daemon (Whisper, live dictation) |
+
+**Optional (prompted during setup):**
+
+| Service | Repo | Purpose | Requires |
+|---------|------|---------|----------|
+| `voicecli_tts` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | TTS daemon (Qwen, zero-latency) | NVIDIA GPU |
+| `voicecli_stt` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | STT daemon (Whisper, live dictation) | NVIDIA GPU |
+| `diagrams` | (built-in) | Diagrams gallery with live-reload | — |
+| — | [Roxabi/imageCLI](https://github.com/Roxabi/imageCLI) | Image generation CLI | NVIDIA GPU |
+| — | [Roxabi/roxabi-vault](https://github.com/Roxabi/roxabi-vault) | Knowledge vault | — |
 
 ## One-shot setup
 
@@ -29,12 +39,12 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 # 1. Provision the machine (system packages, uv, supervisord, Claude CLI, etc.)
 curl -fsSL https://raw.githubusercontent.com/Roxabi/lyra-stack/main/scripts/provision.sh | bash
 
-# 2. Clone this repo and run setup (clones modules, installs deps, registers, starts)
+# 2. Clone this repo and run setup
+#    Installs lyra (core), then prompts for optional modules (voiceCLI, diagrams, etc.)
 git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
 cd ~/projects/lyra-stack && make setup
 
-# 3. Configure (fill in tokens + user IDs)
-nano ~/projects/lyra/.env
+# 3. Configure (fill in user IDs + store bot tokens)
 nano ~/projects/lyra/config.toml
 lyra bot add
 
