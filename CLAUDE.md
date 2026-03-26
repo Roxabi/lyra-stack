@@ -14,7 +14,7 @@ Manages all background services that support Lyra and its ecosystem.
 | `lyra_discord` | `python -m lyra --adapter discord` | Lyra AI agent — Discord adapter |
 | `voicecli_tts` | `voicecli serve --engine qwen-fast` | TTS daemon — keeps Qwen model warm in VRAM for zero-latency speech generation |
 | `voicecli_stt` | `voicecli stt-serve` | STT daemon — keeps faster-whisper loaded for fast dictation via `voicecli dictate` |
-| `diagrams` | `python3 serve.py` | Diagrams gallery — serves `~/.agent/diagrams` with live-reload on `localhost:8080` |
+| `diagrams` | `python3 serve.py` | Diagrams gallery — serves `~/.agent/` with live-reload on `localhost:8080` |
 
 ## Layout
 
@@ -60,6 +60,8 @@ make stt start|reload|stop|logs|errlogs
 
 make diagrams        # show diagrams status
 make diagrams start|reload|stop|logs|errlogs
+make diagrams sync   # sync ~/.agent/ to Google Drive (Team Drive)
+make diagrams du     # disk usage per project in ~/.agent/
 ```
 
 ## Adding a New Service

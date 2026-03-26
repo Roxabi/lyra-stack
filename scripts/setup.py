@@ -104,14 +104,18 @@ def scaffold_config_toml(lyra_dir: Path) -> None:
 
 
 def bootstrap_diagrams() -> None:
-    """Create ~/.agent/diagrams/ and copy server files from lyra-stack."""
-    diagrams_dir = Path.home() / ".agent" / "diagrams"
+    """Create ~/.agent/ structure and copy server files from lyra-stack."""
+    agent_dir = Path.home() / ".agent"
     diagrams_src = LYRA_STACK_DIR / "diagrams"
-    diagrams_dir.mkdir(parents=True, exist_ok=True)
+    agent_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create per-project exploration directories
+    for subdir in ("lyra/brand", "lyra/visuals", "lyra/diagrams", "_shared/diagrams"):
+        (agent_dir / subdir).mkdir(parents=True, exist_ok=True)
 
     for name in ("serve.py", "gen-manifest.py", "index.html"):
         src = diagrams_src / name
-        dst = diagrams_dir / name
+        dst = agent_dir / name
         if not src.exists():
             continue
         if dst.exists():
@@ -127,7 +131,7 @@ def bootstrap_diagrams() -> None:
         conf_dst.parent.mkdir(parents=True, exist_ok=True)
         conf_dst.symlink_to(conf_src)
 
-    print("  ✓  Diagrams gallery bootstrapped (~/.agent/diagrams/)")
+    print("  ✓  Diagrams gallery bootstrapped (~/.agent/)")
 
 
 def symlink_voicecli(voicecli_dir: Path) -> None:

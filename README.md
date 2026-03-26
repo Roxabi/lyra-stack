@@ -78,6 +78,17 @@ Replace `<svc>` with `lyra` (both adapters), `telegram`, `discord`, `tts`, or `s
 | `make <svc> errors` | Tail stderr |
 | `make <svc> stop` | Stop service |
 
+### Diagrams & exploration artifacts
+
+Exploration artifacts (brand iterations, diagram drafts, visual explorations) live in `~/.agent/<project>/`, outside git repos. Only finals are committed. Backed up to Google Drive via rclone.
+
+| Command | Description |
+|---------|-------------|
+| `make diagrams` | Show gallery server status |
+| `make diagrams start` | Start gallery server on :8080 |
+| `make diagrams sync` | Sync `~/.agent/` to Google Drive |
+| `make diagrams du` | Disk usage per project |
+
 ## How it works
 
 `conf.d/` contains only symlinks — each project repo owns its supervisor config and logs.
@@ -89,6 +100,7 @@ Replace `<svc>` with `lyra` (both adapters), `telegram`, `discord`, `tts`, or `s
   lyra_discord.conf  → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
   voicecli_tts.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
   voicecli_stt.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
+  diagrams.conf      → ~/projects/lyra-stack/diagrams/conf.d/diagrams.conf
 ```
 
 See [`docs/supervisor-pattern.md`](docs/supervisor-pattern.md)
