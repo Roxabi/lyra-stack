@@ -258,7 +258,11 @@ def main() -> None:
     print()
 
     create_log_dirs()
-    bootstrap_diagrams()
+
+    if ask("  Install diagrams gallery? (optional)", default=False):
+        bootstrap_diagrams()
+    else:
+        print("  skip  diagrams")
 
     if voicecli_dir and voicecli_dir.exists():
         symlink_voicecli(voicecli_dir)
