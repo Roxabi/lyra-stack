@@ -62,6 +62,7 @@ make diagrams        # show diagrams status
 make diagrams start|reload|stop|logs|errlogs
 make diagrams sync   # sync ~/.agent/ to Google Drive (Team Drive)
 make diagrams du     # disk usage per project in ~/.agent/
+make deploy          # git pull + rsync ~/.agent/ to production
 ```
 
 ## Adding a New Service

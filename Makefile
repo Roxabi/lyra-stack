@@ -2,6 +2,8 @@ SUPERVISORCTL   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))scripts/supervi
 SUPERVISOR_START := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))scripts/start.sh
 SUPERVISOR_DIR  := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
+MACHINE1        := $(or $(shell grep '^MACHINE1_HOST=' .env 2>/dev/null | cut -d= -f2),mickael@192.168.1.16)
+MACHINE1_STACK  := $(or $(shell grep '^MACHINE1_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
 
 define ensure_supervisor
 	@if [ ! -f "$(SUPERVISOR_PID)" ] || ! kill -0 $$(cat "$(SUPERVISOR_PID)" 2>/dev/null) 2>/dev/null; then \
@@ -23,7 +25,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams help
+.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams deploy help
 
 .DEFAULT_GOAL := help
 
@@ -41,6 +43,8 @@ help:
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
 	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|du"
+	@echo ""
+	@echo "  deploy           git pull + rsync ~/.agent/ to production"
 	@echo ""
 	@echo "  Set LYRA_STACK_DIR to override hub location (default: ~/projects/lyra-stack)"
 
@@ -169,3 +173,16 @@ else ifeq ($(SVC_CMD),du)
 else
 	$(SUPERVISORCTL) status diagrams
 endif
+
+deploy:
+	@echo "Deploying to production ($(MACHINE1))..."
+	@echo "── git pull ──"
+	@ssh $(MACHINE1) "cd $(MACHINE1_STACK) && git pull"
+	@echo "── rsync ~/.agent/ ──"
+	@rsync -avz --delete \
+		--exclude "__pycache__/" \
+		--exclude "*.pyc" \
+		--exclude ".DS_Store" \
+		--exclude ".sync.log" \
+		~/.agent/ $(MACHINE1):~/.agent/
+	@echo "Done."

@@ -88,6 +88,7 @@ Exploration artifacts (brand iterations, diagram drafts, visual explorations) li
 | `make diagrams start` | Start gallery server on :8080 |
 | `make diagrams sync` | Sync `~/.agent/` to Google Drive |
 | `make diagrams du` | Disk usage per project |
+| `make deploy` | Git pull + rsync `~/.agent/` to production |
 
 ## How it works
 
