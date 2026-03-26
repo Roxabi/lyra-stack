@@ -278,19 +278,27 @@ def main() -> None:
 
     print()
 
-    # ── Phase 3: Start supervisord ───────────────────────────────────────────
+    # ── Phase 3: Start supervisord + enable systemd ─────────────────────────
 
     print("Starting supervisord...")
     run(str(LYRA_STACK_DIR / "scripts" / "start.sh"))
 
     print()
+    print("Enabling systemd auto-start...")
+    run("systemctl --user daemon-reload", check=False)
+    run("systemctl --user enable lyra-stack.service", check=False)
+    run("loginctl enable-linger $(whoami)", check=False)
+    print("  ✓  lyra-stack.service enabled (auto-starts on boot)")
+
+    print()
     print("─" * 40)
     print("Setup complete!")
     print()
-    print("  make ps              status of all services")
-    print("  make lyra reload     restart lyra")
-    print("  make tts reload      restart voicecli_tts")
-    print("  make stt reload      restart voicecli_stt")
+    print("  make ps                              status of all services")
+    print("  systemctl --user status lyra-stack    systemd unit status")
+    print("  make lyra reload                     restart lyra")
+    print("  make tts reload                      restart voicecli_tts")
+    print("  make stt reload                      restart voicecli_stt")
     print()
 
     # ── Remaining manual steps ───────────────────────────────────────────────

@@ -20,7 +20,7 @@ if [ -f "$SUPERVISOR_DIR/supervisord.pid" ]; then
 fi
 
 echo "Starting supervisord..."
-supervisord -c "$SUPERVISOR_DIR/supervisord.conf"
+"$HOME/.local/bin/supervisord" -c "$SUPERVISOR_DIR/supervisord.conf"
 sleep 2
 echo "✓ supervisord started"
 echo ""

@@ -5,6 +5,7 @@
 
 Central supervisord instance for the local machine.
 Manages all background services that support Lyra and its ecosystem.
+Managed by a **systemd user unit** (`lyra-stack.service`) with linger — auto-starts on boot.
 
 ## Services
 
@@ -29,8 +30,8 @@ Manages all background services that support Lyra and its ecosystem.
     diagrams.conf       → ~/projects/lyra-stack/diagrams/conf.d/diagrams.conf
   diagrams/             — diagrams gallery server (owned by lyra-stack)
   scripts/
-    start.sh            — start supervisord (idempotent)
-    supervisorctl.sh    — supervisorctl wrapper (correct socket path)
+    start.sh            — start supervisord (idempotent, uses full path to $HOME/.local/bin/supervisord)
+    supervisorctl.sh    — supervisorctl wrapper (full path to $HOME/.local/bin/supervisorctl)
   logs/                 — supervisord own logs only
   Makefile              — control interface (see below)
 ```
@@ -63,6 +64,10 @@ make diagrams start|reload|stop|logs|errlogs
 make diagrams sync   # sync ~/.agent/ to Google Drive (Team Drive)
 make diagrams du     # disk usage per project in ~/.agent/
 make deploy          # git pull + rsync ~/.agent/ to production
+
+# systemd
+systemctl --user status lyra-stack   # unit status
+systemctl --user restart lyra-stack  # restart all
 ```
 
 ## Adding a New Service

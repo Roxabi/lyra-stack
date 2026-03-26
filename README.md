@@ -12,7 +12,7 @@ this repo is just the runtime hub that holds them together.
 
 Running multiple AI services (agent, TTS, STT) means managing several long-lived processes across multiple repos. Without a shared supervisor, each service needs its own restart logic, log plumbing, and startup order — and a machine reboot means manually restarting everything.
 
-lyra-stack solves this with a single supervisord instance. Each project repo owns its config; this hub just wires them together. One `make start` brings everything up, and any project can register itself with `make register`.
+lyra-stack solves this with a single supervisord instance. Each project repo owns its config; this hub just wires them together. One `make start` brings everything up, and any project can register itself with `make register`. A systemd user unit with linger ensures everything auto-starts on boot — no login session required.
 
 ## What's included
 
@@ -51,7 +51,11 @@ lyra bot add
 # 4. Authenticate Claude CLI
 claude
 
-# 5. Verify
+# 5. Enable auto-start on boot
+systemctl --user enable lyra-stack.service
+loginctl enable-linger $USER
+
+# 6. Verify
 make ps
 ```
 
@@ -65,6 +69,7 @@ All commands run from `~/projects/lyra-stack`.
 |---------|-------------|
 | `make start` | Start supervisord + all services (idempotent) |
 | `make ps` | Status of all services |
+| `systemctl --user status lyra-stack` | systemd unit status |
 
 ### Per-service
 

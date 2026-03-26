@@ -90,11 +90,12 @@ exec "$HOME/projects/myproject/.venv/bin/python" -m myproject
 
 ### 3. `supervisor/scripts/supervisorctl.sh`
 Thin delegate — always points to the global supervisor socket.
+Uses full path to `supervisorctl` so it works in systemd's minimal PATH.
 
 ```bash
 #!/usr/bin/env bash
 STACK_DIR="${LYRA_STACK_DIR:-$HOME/projects/lyra-stack}"
-exec supervisorctl -c "$STACK_DIR/supervisord.conf" "$@"
+exec "$HOME/.local/bin/supervisorctl" -c "$STACK_DIR/supervisord.conf" "$@"
 ```
 
 ### 4. Log directory — XDG-compliant
@@ -163,6 +164,36 @@ Every start target performs these checks in order:
 
 ---
 
+## Boot — systemd user unit
+
+supervisord is managed by a **systemd user unit** (`lyra-stack.service`) so it
+starts automatically on boot without a login session.
+
+```bash
+# Install the unit (already in ~/.config/systemd/user/ on provisioned machines)
+cp ~/.config/systemd/user/lyra-stack.service  # or scp from another machine
+
+# Enable auto-start + linger (runs without login)
+systemctl --user daemon-reload
+systemctl --user enable lyra-stack.service
+loginctl enable-linger $USER
+
+# Manual control
+systemctl --user start lyra-stack
+systemctl --user stop lyra-stack
+systemctl --user restart lyra-stack
+systemctl --user status lyra-stack
+```
+
+The unit file lives at `~/.config/systemd/user/lyra-stack.service`. It calls
+`scripts/start.sh` (ExecStart) and `supervisorctl shutdown` (ExecStop).
+
+> **Important:** `start.sh` and `supervisorctl.sh` use full paths
+> (`$HOME/.local/bin/supervisord`, `$HOME/.local/bin/supervisorctl`) because
+> systemd's environment does not include `~/.local/bin` on PATH.
+
+---
+
 ## Setting up a new machine
 
 ```bash
@@ -173,7 +204,11 @@ cd ~/projects/lyra-stack && make start
 # 2. Clone and register each module (or use setup to do it all at once)
 cd ~/projects/lyra-stack && make setup
 
-# 3. Verify all programs are loaded
+# 3. Enable auto-start on boot
+systemctl --user enable lyra-stack.service
+loginctl enable-linger $USER
+
+# 4. Verify all programs are loaded
 cd ~/projects/lyra-stack && make ps
 ```
 

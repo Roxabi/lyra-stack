@@ -3,4 +3,4 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 SUPERVISOR_DIR="$(dirname "$SCRIPT_DIR")"
 
-exec supervisorctl -c "$SUPERVISOR_DIR/supervisord.conf" "$@"
+exec "$HOME/.local/bin/supervisorctl" -c "$SUPERVISOR_DIR/supervisord.conf" "$@"
