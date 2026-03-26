@@ -103,6 +103,33 @@ def scaffold_config_toml(lyra_dir: Path) -> None:
     print("       → Edit ~/projects/lyra/config.toml and fill in your user IDs")
 
 
+def bootstrap_diagrams() -> None:
+    """Create ~/.agent/diagrams/ and copy server files from lyra-stack."""
+    diagrams_dir = Path.home() / ".agent" / "diagrams"
+    diagrams_src = LYRA_STACK_DIR / "diagrams"
+    diagrams_dir.mkdir(parents=True, exist_ok=True)
+
+    for name in ("serve.py", "gen-manifest.py", "index.html"):
+        src = diagrams_src / name
+        dst = diagrams_dir / name
+        if not src.exists():
+            continue
+        if dst.exists():
+            # Update if source is newer
+            if src.stat().st_mtime <= dst.stat().st_mtime:
+                continue
+        shutil.copy2(src, dst)
+
+    # Register diagrams conf symlink
+    conf_src = diagrams_src / "conf.d" / "diagrams.conf"
+    conf_dst = LYRA_STACK_DIR / "conf.d" / "diagrams.conf"
+    if conf_src.exists() and not conf_dst.exists():
+        conf_dst.parent.mkdir(parents=True, exist_ok=True)
+        conf_dst.symlink_to(conf_src)
+
+    print("  ✓  Diagrams gallery bootstrapped (~/.agent/diagrams/)")
+
+
 def symlink_voicecli(voicecli_dir: Path) -> None:
     """Symlink voicecli venv binary to ~/.local/bin/."""
     venv_bin = voicecli_dir / ".venv" / "bin" / "voicecli"
@@ -217,6 +244,7 @@ def main() -> None:
     print()
 
     create_log_dirs()
+    bootstrap_diagrams()
 
     if voicecli_dir and voicecli_dir.exists():
         symlink_voicecli(voicecli_dir)
