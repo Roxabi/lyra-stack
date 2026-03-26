@@ -199,12 +199,10 @@ def main() -> None:
     lyra_dir = None
     voicecli_dir = None
 
+    installed_optional: set[str] = set()
+
     for name, module in modules.items():
         optional = module.get("optional", False)
-        if optional and not include_optional:
-            print(f"  skip  {name}  (optional — use --all to include)")
-            continue
-
         path = Path(module["path"]).expanduser()
 
         if name == "lyra":
@@ -212,12 +210,20 @@ def main() -> None:
         elif name == "voiceCLI":
             voicecli_dir = path
 
-        if path.exists():
-            print(f"  ✓  {name}  (already at {path})")
-        else:
-            if not ask(f"  Clone {name} → {path}?"):
+        # Optional modules: ask unless --all was passed
+        if optional and not include_optional:
+            if path.exists():
+                print(f"  ✓  {name}  (already at {path})")
+            elif not ask(f"  Install {name}? (optional)", default=False):
                 print(f"  skip  {name}")
                 continue
+        elif not optional:
+            pass  # required — always install
+
+        if path.exists():
+            if name not in ("lyra",):  # lyra already printed above if optional check passed
+                print(f"  ✓  {name}  (already at {path})")
+        else:
             path.parent.mkdir(parents=True, exist_ok=True)
             run(f"git clone {module['repo']} {path}")
             tag = module.get("tag", "").strip()
@@ -235,6 +241,14 @@ def main() -> None:
         else:
             print("       skipping registration (no daemon)")
 
+        if optional:
+            installed_optional.add(name)
+        print()
+
+    # If voiceCLI was installed, re-sync lyra with the voice extra
+    if "voiceCLI" in installed_optional and lyra_dir and lyra_dir.exists():
+        print("       re-syncing lyra with voice support...")
+        run("uv sync --extra voice", cwd=lyra_dir)
         print()
 
     # ── Phase 2: Post-setup scaffolding ──────────────────────────────────────
