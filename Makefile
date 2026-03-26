@@ -162,7 +162,15 @@ else ifeq ($(SVC_CMD),stop)
 else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start diagrams
 else ifeq ($(SVC_CMD),sync)
-	rclone sync ~/.agent/ SyncLyra:agent-archive/ \
+	@echo "── push local → Drive ──"
+	rclone copy ~/.agent/ SyncLyra:agent-archive/ \
+		--exclude "__pycache__/**" \
+		--exclude "*.pyc" \
+		--exclude ".DS_Store" \
+		--exclude ".sync.log" \
+		-v
+	@echo "── pull Drive → local ──"
+	rclone copy SyncLyra:agent-archive/ ~/.agent/ \
 		--exclude "__pycache__/**" \
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
@@ -179,7 +187,7 @@ deploy:
 	@echo "── git pull ──"
 	@ssh $(MACHINE1) "cd $(MACHINE1_STACK) && git pull"
 	@echo "── rsync ~/.agent/ ──"
-	@rsync -avz --delete \
+	@rsync -avz \
 		--exclude "__pycache__/" \
 		--exclude "*.pyc" \
 		--exclude ".DS_Store" \
