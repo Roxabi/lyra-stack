@@ -34,7 +34,8 @@ sudo apt install -y \
   curl wget git htop nvtop \
   fail2ban ufw \
   build-essential python3-dev portaudio19-dev \
-  ffmpeg
+  ffmpeg wtype wl-clipboard \
+  libgirepository-2.0-dev libcairo2-dev
 
 section "moviepy (dedicated venv)"
 MOVIEPY_VENV="$HOME/.venvs/moviepy"
