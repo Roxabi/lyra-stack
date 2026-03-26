@@ -42,7 +42,7 @@ help:
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
-	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|du"
+	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du"
 	@echo ""
 	@echo "  deploy           git pull + rsync ~/.agent/ to production"
 	@echo ""
@@ -161,6 +161,22 @@ else ifeq ($(SVC_CMD),stop)
 	$(SUPERVISORCTL) stop diagrams
 else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start diagrams
+else ifeq ($(SVC_CMD),push)
+	@echo "── push local → Drive ──"
+	rclone copy ~/.agent/ SyncLyra:agent-archive/ \
+		--exclude "__pycache__/**" \
+		--exclude "*.pyc" \
+		--exclude ".DS_Store" \
+		--exclude ".sync.log" \
+		-v
+else ifeq ($(SVC_CMD),pull)
+	@echo "── pull Drive → local ──"
+	rclone copy SyncLyra:agent-archive/ ~/.agent/ \
+		--exclude "__pycache__/**" \
+		--exclude "*.pyc" \
+		--exclude ".DS_Store" \
+		--exclude ".sync.log" \
+		-v
 else ifeq ($(SVC_CMD),sync)
 	@echo "── push local → Drive ──"
 	rclone copy ~/.agent/ SyncLyra:agent-archive/ \
