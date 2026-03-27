@@ -38,6 +38,7 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 | Plugin | Marketplace | Kind | Purpose |
 |--------|------------|------|---------|
 | `web-intel` | `roxabi-marketplace` | mandatory | URL scraping & content analysis |
+| `agent-browser` | `agent-browser` | mandatory | Headless browser for auth/interactive pages |
 | `lyra-send` | `lyra-marketplace` | mandatory | Proactive messaging via Telegram & Discord |
 | `refine-agent` | `lyra-marketplace` | mandatory | Agent profile management |
 | `voice-cli` | `voicecli-marketplace` | conditional | VoiceCLI TTS/STT integration (if voiceCLI installed) |

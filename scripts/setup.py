@@ -120,12 +120,13 @@ def setup_plugins(
     print("─" * 40)
     print()
 
-    # ── Register local marketplaces ───────────────────────────────────────────
+    # ── Register marketplaces ─────────────────────────────────────────────────
 
     marketplace_out = subprocess.run(
         "claude plugin marketplace list", shell=True, capture_output=True, text=True
     ).stdout
 
+    # Local project marketplaces
     for label, path in [("lyra-marketplace", lyra_dir), ("voicecli-marketplace", voicecli_dir)]:
         if not path or not path.exists():
             continue
@@ -141,15 +142,29 @@ def setup_plugins(
             else:
                 print(f"  !  {label}: {r.stderr.strip() or r.stdout.strip()}")
 
+    # agent-browser external marketplace
+    if "agent-browser" not in marketplace_out:
+        r = subprocess.run(
+            "claude plugin marketplace add https://github.com/vercel-labs/agent-browser",
+            shell=True, capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            print("  ✓  agent-browser marketplace registered")
+        else:
+            print(f"  !  agent-browser marketplace: {r.stderr.strip() or r.stdout.strip()}")
+    else:
+        print("  ✓  agent-browser  (already registered)")
+
     print()
 
     # ── Mandatory plugins ─────────────────────────────────────────────────────
 
     print("  Mandatory:")
     mandatory = [
-        ("web-intel",     "roxabi-marketplace",   "URL scraping & analysis"),
-        ("lyra-send",     "lyra-marketplace",     "proactive messaging (Telegram & Discord)"),
-        ("refine-agent",  "lyra-marketplace",     "agent profile management"),
+        ("web-intel",      "roxabi-marketplace",  "URL scraping & analysis"),
+        ("agent-browser",  "agent-browser",       "headless browser (auth, interactive pages)"),
+        ("lyra-send",      "lyra-marketplace",    "proactive messaging (Telegram & Discord)"),
+        ("refine-agent",   "lyra-marketplace",    "agent profile management"),
     ]
     for name, marketplace, desc in mandatory:
         r = subprocess.run(
