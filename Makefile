@@ -54,7 +54,7 @@ help:
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
-	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy"
+	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy|deploy-prod"
 	@echo ""
 	@echo "  deploy           git pull + rsync ~/.agent/ to production"
 	@echo ""
@@ -190,6 +190,19 @@ else ifeq ($(SVC_CMD),deploy)
 	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 	@echo "▸ Deploying to Cloudflare Pages…"
 	@CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams
+else ifeq ($(SVC_CMD),deploy-prod)
+	@echo "── rsync ~/.agent/ → production ──"
+	@rsync -avz --delete \
+		--exclude "__pycache__/" \
+		--exclude "*.pyc" \
+		--exclude ".DS_Store" \
+		--exclude ".sync.log" \
+		--exclude "_dist/" \
+		--exclude "*.py" \
+		--exclude "build.sh" \
+		--exclude "manifest.json" \
+		~/.agent/ $(MACHINE1):~/.agent/
+	@echo "Done."
 else ifeq ($(SVC_CMD),du)
 	@du -sh ~/.agent/*/
 else
