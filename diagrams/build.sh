@@ -9,6 +9,9 @@ DIST="$DIAGRAMS_DIR/_dist"
 echo "▸ Regenerating manifest.json…"
 python3 "$SCRIPT_DIR/gen-manifest.py"
 
+echo "▸ Generating image gallery manifests…"
+python3 "$SCRIPT_DIR/gen-image-manifests.py"
+
 echo "▸ Syncing to _dist/…"
 rm -rf "$DIST"
 rsync -a --delete \
