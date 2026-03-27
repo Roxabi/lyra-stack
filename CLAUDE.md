@@ -15,7 +15,7 @@ Managed by a **systemd user unit** (`lyra-stack.service`) with linger — auto-s
 | `lyra_discord` | `python -m lyra --adapter discord` | Lyra AI agent — Discord adapter |
 | `voicecli_tts` | `voicecli serve --engine qwen-fast` | TTS daemon — keeps Qwen model warm in VRAM for zero-latency speech generation |
 | `voicecli_stt` | `voicecli stt-serve` | STT daemon — keeps faster-whisper loaded for fast dictation via `voicecli dictate` |
-| `diagrams` | `python3 serve.py` | Diagrams gallery — serves `~/.agent/` with live-reload on `localhost:8080` |
+| `diagrams` | `diagrams/scripts/run.sh` | Diagrams gallery — serves `~/.agent/` with live-reload on `localhost:8080` |
 
 ## Layout
 
@@ -28,7 +28,13 @@ Managed by a **systemd user unit** (`lyra-stack.service`) with linger — auto-s
     voicecli_tts.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
     voicecli_stt.conf   → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
     diagrams.conf       → ~/projects/lyra-stack/diagrams/conf.d/diagrams.conf
-  diagrams/             — diagrams gallery server (owned by lyra-stack)
+  diagrams/             — diagrams tooling (serve.py, gen-manifest.py, index.html, build.sh)
+    serve.py            — HTTP server + SSE live-reload + manifest generation (uses DIAGRAMS_DIR env var)
+    gen-manifest.py     — standalone manifest generator
+    index.html          — gallery UI (served by serve.py, copied into _dist for Cloudflare)
+    build.sh            — assemble _dist/ for static deployment
+    seed-meta.py        — one-shot: inject diagram:* meta tags into HTML files
+    update-meta.py      — one-shot: audit and correct meta tags
   scripts/
     start.sh            — start supervisord (idempotent, uses full path to $HOME/.local/bin/supervisord)
     supervisorctl.sh    — supervisorctl wrapper (full path to $HOME/.local/bin/supervisorctl)
@@ -59,15 +65,40 @@ make tts start|reload|stop|logs|errlogs
 make stt             # show stt status
 make stt start|reload|stop|logs|errlogs
 
-make diagrams        # show diagrams status
+make diagrams             # show diagrams status
 make diagrams start|reload|stop|logs|errlogs
-make diagrams sync   # sync ~/.agent/ to Google Drive (Team Drive)
-make diagrams du     # disk usage per project in ~/.agent/
-make deploy          # git pull + rsync ~/.agent/ to production
+make diagrams push        # push ~/.agent/ → Google Drive
+make diagrams pull        # pull Google Drive → ~/.agent/
+make diagrams sync        # push then pull (bidirectional)
+make diagrams build       # regenerate manifest + assemble _dist/
+make diagrams deploy      # build + deploy to Cloudflare Pages
+make diagrams deploy-prod # rsync ~/.agent/ → production (with --delete)
+make diagrams du          # disk usage per project in ~/.agent/
+make deploy               # full lyra stack deploy (git pull + rsync all)
 
 # systemd
 systemctl --user status lyra-stack   # unit status
 systemctl --user restart lyra-stack  # restart all
+```
+
+## Diagrams Architecture
+
+Code and data are strictly separated:
+- **Code** (`lyra-stack/diagrams/`) — all tooling, version-controlled in git
+- **Data** (`~/.agent/`) — diagram HTML files only, synced via rclone/rsync
+
+Scripts use `DIAGRAMS_DIR` env var (defaults to `~/.agent/`) to locate data.
+`run.sh` sets this and runs `serve.py` from the repo. `index.html` is served
+from the repo directory, not `~/.agent/`.
+
+```
+~/.agent/                          ← data only, no tooling
+  diagrams/                        ← project diagram docs (openclaw, aionui, etc.)
+  lyra/                            ← lyra visuals + brand
+  roxabi-plugins/                  ← roxabi-plugins brand
+  _shared/                         ← cross-project diagrams
+  manifest.json                    ← generated, not synced
+  _dist/                           ← build output for Cloudflare, not synced
 ```
 
 ## Adding a New Service
