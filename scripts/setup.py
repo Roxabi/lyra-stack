@@ -103,6 +103,101 @@ def scaffold_config_toml(lyra_dir: Path) -> None:
     print("       → Edit ~/projects/lyra/config.toml and fill in your user IDs")
 
 
+def setup_plugins(
+    lyra_dir: Path | None,
+    voicecli_dir: Path | None,
+    include_optional: bool,
+) -> None:
+    """Register Claude Code marketplaces and install plugins."""
+
+    result = subprocess.run("claude --version", shell=True, capture_output=True)
+    if result.returncode != 0:
+        print("  ✗  claude CLI not found — skipping plugin setup")
+        return
+
+    print()
+    print("Claude Code plugins")
+    print("─" * 40)
+    print()
+
+    # ── Register local marketplaces ───────────────────────────────────────────
+
+    marketplace_out = subprocess.run(
+        "claude plugin marketplace list", shell=True, capture_output=True, text=True
+    ).stdout
+
+    for label, path in [("lyra-marketplace", lyra_dir), ("voicecli-marketplace", voicecli_dir)]:
+        if not path or not path.exists():
+            continue
+        if label in marketplace_out:
+            print(f"  ✓  {label}  (already registered)")
+        else:
+            r = subprocess.run(
+                f"claude plugin marketplace add {path}",
+                shell=True, capture_output=True, text=True,
+            )
+            if r.returncode == 0:
+                print(f"  ✓  {label} registered")
+            else:
+                print(f"  !  {label}: {r.stderr.strip() or r.stdout.strip()}")
+
+    print()
+
+    # ── Mandatory plugins ─────────────────────────────────────────────────────
+
+    print("  Mandatory:")
+    mandatory = [
+        ("web-intel",     "roxabi-marketplace",   "URL scraping & analysis"),
+        ("lyra-send",     "lyra-marketplace",     "proactive messaging (Telegram & Discord)"),
+        ("refine-agent",  "lyra-marketplace",     "agent profile management"),
+    ]
+    for name, marketplace, desc in mandatory:
+        r = subprocess.run(
+            f"claude plugin install {name}@{marketplace}",
+            shell=True, capture_output=True, text=True,
+        )
+        ok = r.returncode == 0 or "already installed" in r.stdout
+        print(f"    {'✓' if ok else '!'}  {name}@{marketplace} — {desc}")
+        if not ok:
+            print(f"         {r.stderr.strip() or r.stdout.strip()}")
+
+    print()
+
+    # ── Conditional: voice-cli (only if voiceCLI was installed) ──────────────
+
+    if voicecli_dir and voicecli_dir.exists():
+        r = subprocess.run(
+            "claude plugin install voice-cli@voicecli-marketplace",
+            shell=True, capture_output=True, text=True,
+        )
+        ok = r.returncode == 0 or "already installed" in r.stdout
+        print(f"  {'✓' if ok else '!'}  voice-cli@voicecli-marketplace — VoiceCLI TTS/STT integration")
+        print()
+
+    # ── Optional plugins ──────────────────────────────────────────────────────
+
+    print("  Optional:")
+    optional_plugins = [
+        ("dev-core",          "roxabi-marketplace", "full dev workflow (frame→spec→plan→implement→ship)"),
+        ("visual-explainer",  "roxabi-marketplace", "HTML diagrams & data visualizations"),
+        ("compress",          "roxabi-marketplace", "compact agent/skill definitions, save tokens"),
+    ]
+    for name, marketplace, desc in optional_plugins:
+        if include_optional or ask(f"    Install {name}? ({desc})", default=True):
+            r = subprocess.run(
+                f"claude plugin install {name}@{marketplace}",
+                shell=True, capture_output=True, text=True,
+            )
+            ok = r.returncode == 0 or "already installed" in r.stdout
+            print(f"    {'✓' if ok else '!'}  {name}@{marketplace}")
+            if not ok:
+                print(f"         {r.stderr.strip() or r.stdout.strip()}")
+        else:
+            print(f"    skip  {name}")
+
+    print()
+
+
 def bootstrap_diagrams() -> None:
     """Create ~/.agent/ structure and copy server files from lyra-stack."""
     agent_dir = Path.home() / ".agent"
@@ -278,7 +373,11 @@ def main() -> None:
 
     print()
 
-    # ── Phase 3: Start supervisord + enable systemd ─────────────────────────
+    # ── Phase 3: Claude Code plugins ─────────────────────────────────────────
+
+    setup_plugins(lyra_dir, voicecli_dir, include_optional)
+
+    # ── Phase 4: Start supervisord + enable systemd ───────────────────────────
 
     print("Starting supervisord...")
     run(str(LYRA_STACK_DIR / "scripts" / "start.sh"))

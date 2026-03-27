@@ -33,6 +33,18 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 | — | [Roxabi/imageCLI](https://github.com/Roxabi/imageCLI) | Image generation CLI | NVIDIA GPU |
 | — | [Roxabi/roxabi-vault](https://github.com/Roxabi/roxabi-vault) | Knowledge vault | — |
 
+**Claude Code plugins (installed by `make setup`):**
+
+| Plugin | Marketplace | Kind | Purpose |
+|--------|------------|------|---------|
+| `web-intel` | `roxabi-marketplace` | mandatory | URL scraping & content analysis |
+| `lyra-send` | `lyra-marketplace` | mandatory | Proactive messaging via Telegram & Discord |
+| `refine-agent` | `lyra-marketplace` | mandatory | Agent profile management |
+| `voice-cli` | `voicecli-marketplace` | conditional | VoiceCLI TTS/STT integration (if voiceCLI installed) |
+| `dev-core` | `roxabi-marketplace` | optional | Full dev workflow (frame→spec→plan→ship) |
+| `visual-explainer` | `roxabi-marketplace` | optional | HTML diagrams & data visualizations |
+| `compress` | `roxabi-marketplace` | optional | Compact agent/skill definitions, save tokens |
+
 ## One-shot setup
 
 ```bash
@@ -40,7 +52,8 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 curl -fsSL https://raw.githubusercontent.com/Roxabi/lyra-stack/main/scripts/provision.sh | bash
 
 # 2. Clone this repo and run setup
-#    Installs lyra (core), then prompts for optional modules (voiceCLI, diagrams, etc.)
+#    Installs lyra (core), prompts for optional modules (voiceCLI, diagrams, etc.)
+#    and installs Claude Code plugins (mandatory + prompted optional)
 git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
 cd ~/projects/lyra-stack && make setup
 
