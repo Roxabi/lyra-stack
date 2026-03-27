@@ -85,15 +85,19 @@ Replace `<svc>` with `lyra` (both adapters), `telegram`, `discord`, `tts`, or `s
 
 ### Diagrams & exploration artifacts
 
-Exploration artifacts (brand iterations, diagram drafts, visual explorations) live in `~/.agent/<project>/`, outside git repos. Only finals are committed. Backed up to Google Drive via rclone.
+Exploration artifacts (brand iterations, diagram drafts, visual explorations) live in `~/.agent/` (data only). Tooling lives in `lyra-stack/diagrams/` (git-tracked). Latest versions are tagged with the `latest` badge in diagram meta. Backed up to Google Drive via rclone.
 
 | Command | Description |
 |---------|-------------|
 | `make diagrams` | Show gallery server status |
 | `make diagrams start` | Start gallery server on :8080 |
-| `make diagrams sync` | Sync `~/.agent/` to Google Drive |
+| `make diagrams push` | Push `~/.agent/` to Google Drive |
+| `make diagrams pull` | Pull Google Drive to `~/.agent/` |
+| `make diagrams sync` | Push then pull (bidirectional) |
+| `make diagrams build` | Regenerate manifest + assemble `_dist/` |
+| `make diagrams deploy` | Build + deploy to Cloudflare Pages |
+| `make diagrams deploy-prod` | Rsync `~/.agent/` to production (with `--delete`) |
 | `make diagrams du` | Disk usage per project |
-| `make deploy` | Git pull + rsync `~/.agent/` to production |
 
 ## How it works
 
