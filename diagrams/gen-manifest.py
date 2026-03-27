@@ -15,10 +15,10 @@ Meta tags read (all in <head>):
 kb is computed from actual file size (no need to maintain manually).
 """
 import glob as globmod
-import json, re, time
+import json, os, re, time
 from pathlib import Path
 
-DIR = Path(__file__).parent
+DIR = Path(os.environ.get('DIAGRAMS_DIR', Path(__file__).parent))
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
 TITLE_RE = re.compile(r'<title>([^<]+)</title>', re.IGNORECASE)
 
@@ -86,7 +86,7 @@ entries, skipped = [], []
 for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
     fp = Path(match)
     rel = str(fp.relative_to(DIR))
-    if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/'):
+    if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
         continue
     entry = parse(fp, rel)
     if entry:

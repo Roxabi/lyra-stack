@@ -5,6 +5,18 @@ SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
 MACHINE1        := $(or $(shell grep '^MACHINE1_HOST=' .env 2>/dev/null | cut -d= -f2),mickael@192.168.1.16)
 MACHINE1_STACK  := $(or $(shell grep '^MACHINE1_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
 
+# Common excludes for rclone sync (Google Drive) — skip tooling (symlinks to repo), build output, caches
+RCLONE_EXCLUDES := \
+	--exclude "__pycache__/**" \
+	--exclude "*.pyc" \
+	--exclude ".DS_Store" \
+	--exclude ".sync.log" \
+	--exclude "_dist/**" \
+	--exclude "*.py" \
+	--exclude "/build.sh" \
+	--exclude "/index.html" \
+	--exclude "/manifest.json"
+
 define ensure_supervisor
 	@if [ ! -f "$(SUPERVISOR_PID)" ] || ! kill -0 $$(cat "$(SUPERVISOR_PID)" 2>/dev/null) 2>/dev/null; then \
 		echo "supervisord not running, starting..."; \
@@ -163,43 +175,19 @@ else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start diagrams
 else ifeq ($(SVC_CMD),push)
 	@echo "── push local → Drive ──"
-	rclone copy ~/.agent/ SyncLyra:agent-archive/ \
-		--exclude "__pycache__/**" \
-		--exclude "*.pyc" \
-		--exclude ".DS_Store" \
-		--exclude ".sync.log" \
-		--exclude "_dist/**" \
-		-v
+	rclone copy ~/.agent/ SyncLyra:agent-archive/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),pull)
 	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:agent-archive/ ~/.agent/ \
-		--exclude "__pycache__/**" \
-		--exclude "*.pyc" \
-		--exclude ".DS_Store" \
-		--exclude ".sync.log" \
-		--exclude "_dist/**" \
-		-v
+	rclone copy SyncLyra:agent-archive/ ~/.agent/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),sync)
 	@echo "── push local → Drive ──"
-	rclone copy ~/.agent/ SyncLyra:agent-archive/ \
-		--exclude "__pycache__/**" \
-		--exclude "*.pyc" \
-		--exclude ".DS_Store" \
-		--exclude ".sync.log" \
-		--exclude "_dist/**" \
-		-v
+	rclone copy ~/.agent/ SyncLyra:agent-archive/ $(RCLONE_EXCLUDES) -v
 	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:agent-archive/ ~/.agent/ \
-		--exclude "__pycache__/**" \
-		--exclude "*.pyc" \
-		--exclude ".DS_Store" \
-		--exclude ".sync.log" \
-		--exclude "_dist/**" \
-		-v
+	rclone copy SyncLyra:agent-archive/ ~/.agent/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),build)
-	@cd ~/.agent && bash build.sh
+	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 else ifeq ($(SVC_CMD),deploy)
-	@cd ~/.agent && bash build.sh
+	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 	@echo "▸ Deploying to Cloudflare Pages…"
 	@CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams
 else ifeq ($(SVC_CMD),du)

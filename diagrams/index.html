@@ -134,7 +134,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <header class="header">
   <div>
     <div class="header-title">✦ <span>Diagrams</span></div>
-    <div class="header-sub">Visual explainers, architecture maps &amp; user guides · <code style="font-family:var(--mono);font-size:.75em;color:var(--accent)">localhost:8080</code></div>
+    <div class="header-sub">Visual explainers, architecture maps &amp; user guides</div>
   </div>
   <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
 </header>
@@ -183,7 +183,7 @@ let DATA = [];
 // ── State ─────────────────────────────────────────────────────────
 const S = {
   theme: localStorage.getItem('idx-theme') || 'dark',
-  group: localStorage.getItem('idx-group') || 'cat',
+  group: localStorage.getItem('idx-group') || 'date',
   sort:  localStorage.getItem('idx-sort')  || 'date-desc',
   view:  localStorage.getItem('idx-view')  || 'card',
   q: '',
@@ -351,24 +351,26 @@ function loadManifest() {
 }
 loadManifest();
 
-// ── Live reload via SSE ──────────────────────────────────────────
-(function() {
-  let es;
-  function connect() {
-    es = new EventSource('/api/events');
-    es.onmessage = function(e) {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'reload') {
-          console.log('[live-reload] manifest changed:', msg.changed);
-          loadManifest();
-        }
-      } catch(_) {}
-    };
-    es.onerror = function() { es.close(); setTimeout(connect, 5000); };
-  }
-  connect();
-})();
+// ── Live reload via SSE (dev only) ───────────────────────────────
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  (function() {
+    let es;
+    function connect() {
+      es = new EventSource('/api/events');
+      es.onmessage = function(e) {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'reload') {
+            console.log('[live-reload] manifest changed:', msg.changed);
+            loadManifest();
+          }
+        } catch(_) {}
+      };
+      es.onerror = function() { es.close(); setTimeout(connect, 5000); };
+    }
+    connect();
+  })();
+}
 </script>
 </body>
 </html>

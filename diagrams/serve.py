@@ -9,7 +9,8 @@ import glob as globmod
 import http.server, json, os, re, threading, time
 from pathlib import Path
 
-DIR = Path(__file__).parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+DIR = Path(os.environ.get('DIAGRAMS_DIR', SCRIPT_DIR))
 PORT = int(os.environ.get('DIAGRAMS_PORT', 8080))
 
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
@@ -84,7 +85,7 @@ def gen_manifest():
     for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
         fp = Path(match)
         rel = str(fp.relative_to(DIR))
-        if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/'):
+        if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
             continue
         # Resolve symlinks for parsing, but keep relative path
         target = fp.resolve() if fp.is_symlink() else fp
@@ -115,7 +116,7 @@ def snapshot():
     for match in globmod.glob(str(DIR / '**/*.html'), recursive=True):
         fp = Path(match)
         rel = str(fp.relative_to(DIR))
-        if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/'):
+        if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
             continue
         try:
             target = fp.resolve() if fp.is_symlink() else fp
@@ -170,6 +171,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(DIR), **kwargs)
 
     def do_GET(self):
+        # Serve gallery UI (index.html) from the script directory, not the data directory
+        if self.path in ('/', '/index.html'):
+            index = SCRIPT_DIR / 'index.html'
+            body = index.read_bytes()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if self.path == '/favicon.ico':
             self.send_response(200)
             self.send_header('Content-Type', 'image/svg+xml')
