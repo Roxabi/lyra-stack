@@ -215,6 +215,14 @@ else
   info "Claude CLI installed. Run 'claude' to authenticate."
 fi
 
+section "agent-browser (headless browser for Claude Code)"
+if command -v agent-browser &>/dev/null; then
+  info "agent-browser already installed."
+else
+  npm install -g agent-browser && agent-browser install
+  info "agent-browser installed."
+fi
+
 # ── External tools ───────────────────────────────────────────────────────────
 
 section "External tools (ADR-010: Install, Wrap, Declare)"

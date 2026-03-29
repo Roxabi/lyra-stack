@@ -189,7 +189,7 @@ else ifeq ($(SVC_CMD),build)
 else ifeq ($(SVC_CMD),deploy)
 	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 	@echo "▸ Deploying to Cloudflare Pages…"
-	@CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams
+	@set -a; [ -f .env ] && . ./.env; set +a; CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams --branch=main --commit-dirty=true
 else ifeq ($(SVC_CMD),deploy-prod)
 	@echo "── rsync ~/.agent/ → production ──"
 	@rsync -avz --delete \
