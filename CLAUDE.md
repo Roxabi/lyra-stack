@@ -63,7 +63,14 @@ make diagrams        # show diagrams status
 make diagrams start|reload|stop|logs|errlogs
 make diagrams sync   # sync ~/.agent/ to Google Drive (Team Drive)
 make diagrams du     # disk usage per project in ~/.agent/
-make deploy          # git pull + rsync ~/.agent/ to production
+make diagrams build  # build ~/.agent/ → ~/.agent/_dist
+make diagrams deploy # build + deploy _dist to Cloudflare Pages → diagrams.roxabi.com
+make deploy          # git pull + rsync ~/.agent/ to machine1 via SSH (not Cloudflare)
+
+# Deploy notes:
+# - `make diagrams deploy` déploie sur la branche `main` (--branch=main) → diagrams.roxabi.com
+# - CLOUDFLARE_API_TOKEN lu depuis .env automatiquement (ne pas exporter manuellement)
+# - Le repo lyra-stack est sur la branche `staging` — sans --branch=main, wrangler déploie en preview uniquement
 
 # systemd
 systemctl --user status lyra-stack   # unit status
@@ -126,6 +133,18 @@ cd ../lyra-stack-XXX
 
 Exception: XS changes (confirm via AskUserQuestion).
 **Never code on main/staging without worktree.**
+
+## Deploy — Cloudflare Pages
+
+La galerie de diagrammes (`~/.agent/`) est hébergée sur **Cloudflare Pages** (projet `diagrams`).
+
+```bash
+make diagrams deploy   # build + deploy → Cloudflare Pages
+```
+
+Requiert la variable d'environnement `CLOUDFLARE_API_TOKEN` (wrangler refuse en mode non-interactif sans elle).
+
+> **Ne pas confondre avec `make deploy`** qui fait un rsync SSH vers `192.168.1.16` (machine locale) — sans rapport avec Cloudflare.
 
 ## Gotchas
 
