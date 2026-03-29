@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "roxabi-marketplace": { "source": { "source": "github", "repo": "Roxabi/roxabi-plugins" } },
+    "lyra-marketplace": { "source": { "source": "github", "repo": "Roxabi/lyra" } },
+    "voicecli-marketplace": { "source": { "source": "github", "repo": "Roxabi/voiceCLI" } },
+    "claude-plugins-official": { "source": { "source": "github", "repo": "anthropics/claude-plugins-official" } }
+  },
+  "enabledPlugins": {
+    "dev-core@roxabi-marketplace": true,
+    "lyra-send@lyra-marketplace": true,
+    "refine-agent@lyra-marketplace": true,
+    "voice-cli@voicecli-marketplace": true
+  }
+}
