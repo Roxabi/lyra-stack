@@ -236,11 +236,18 @@ if [ -x /usr/local/bin/nats-server ]; then
   info "nats-server already installed ($(/usr/local/bin/nats-server --version 2>&1 | head -1))."
 else
   ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-  NATS_URL="https://github.com/nats-io/nats-server/releases/download/v${NATS_VERSION}/nats-server-v${NATS_VERSION}-linux-${ARCH}.tar.gz"
+  NATS_TARBALL="nats-server-v${NATS_VERSION}-linux-${ARCH}.tar.gz"
+  NATS_URL="https://github.com/nats-io/nats-server/releases/download/v${NATS_VERSION}/${NATS_TARBALL}"
+  NATS_SHA256_URL="https://github.com/nats-io/nats-server/releases/download/v${NATS_VERSION}/SHA256SUMS"
   NATS_TMP=$(mktemp -d)
-  curl -fsSL "${NATS_URL}" | tar -xz -C "${NATS_TMP}"
+  # Download as user; sudo install below
+  trap 'rm -rf "${NATS_TMP}"' EXIT
+  curl -fsSL "${NATS_URL}" -o "${NATS_TMP}/${NATS_TARBALL}"
+  curl -fsSL "${NATS_SHA256_URL}" -o "${NATS_TMP}/SHA256SUMS"
+  (cd "${NATS_TMP}" && grep "${NATS_TARBALL}" SHA256SUMS | sha256sum --check) \
+    || error "SHA-256 verification failed for nats-server v${NATS_VERSION}"
+  tar -xz -C "${NATS_TMP}" -f "${NATS_TMP}/${NATS_TARBALL}"
   sudo install -m 755 "${NATS_TMP}/nats-server-v${NATS_VERSION}-linux-${ARCH}/nats-server" /usr/local/bin/nats-server
-  rm -rf "${NATS_TMP}"
   info "nats-server v${NATS_VERSION} installed to /usr/local/bin/nats-server."
 fi
 
@@ -283,8 +290,24 @@ else
   fi
 fi
 
+section "lyra-stack ordering (After=nats.service)"
+# User units cannot directly depend on system units; drop-in is the correct mechanism.
+NATS_DROPIN_DIR="$HOME/.config/systemd/user/lyra-stack.service.d"
+NATS_DROPIN="${NATS_DROPIN_DIR}/after-nats.conf"
+if [ -f "${NATS_DROPIN}" ]; then
+  info "lyra-stack After=nats.service drop-in already installed."
+else
+  mkdir -p "${NATS_DROPIN_DIR}"
+  cat > "${NATS_DROPIN}" << 'DROPIN'
+[Unit]
+After=nats.service
+DROPIN
+  systemctl --user daemon-reload 2>/dev/null || true
+  info "lyra-stack.service will now start after nats.service (drop-in installed)."
+fi
+
 section "Firewall (NATS port 4222 — LAN only)"
-if sudo ufw status | grep -q "4222"; then
+if sudo ufw status | grep -qE "4222/tcp.*ALLOW.*192\.168\.1\.0"; then
   info "UFW NATS rule already exists."
 else
   sudo ufw allow from 192.168.1.0/24 to any port 4222 proto tcp comment "NATS (LAN)"

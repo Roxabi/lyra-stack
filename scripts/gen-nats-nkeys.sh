@@ -66,13 +66,22 @@ ensure_nk() {
   local url="https://github.com/nats-io/nkeys/releases/download/v${version}/nk-v${version}-linux-${arch}.zip"
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap 'rm -rf "${tmpdir}"' RETURN
+  trap 'rm -rf "${tmpdir}"' EXIT
 
   curl -fsSL "${url}" -o "${tmpdir}/nk.zip" \
     || error "Failed to download nk v${version} from ${url}"
 
   unzip -q "${tmpdir}/nk.zip" -d "${tmpdir}"
   chmod +x "${tmpdir}/nk"
+
+  # Verify SHA-256 if NK_SHA256 is set (get hash from github.com/nats-io/nkeys/releases)
+  if [ -n "${NK_SHA256:-}" ]; then
+    echo "${NK_SHA256}  ${tmpdir}/nk" | sha256sum --check \
+      || error "SHA-256 mismatch for nk v${version} — update NK_SHA256 in your env"
+  else
+    warn "NK_SHA256 not set — skipping nk binary verification"
+    warn "  Find the hash at: https://github.com/nats-io/nkeys/releases/tag/v${version}"
+  fi
 
   # Install to /usr/local/bin for this session and future use
   cp "${tmpdir}/nk" /usr/local/bin/nk
@@ -100,7 +109,8 @@ generate_nkey() {
   # Generate seed and save to temp file, then extract public key
   "${NK_BIN}" -gen user > "${tmp_seed}"
   local pubkey
-  pubkey=$("${NK_BIN}" -inkey "${tmp_seed}" -pubout)
+  pubkey=$("${NK_BIN}" -inkey "${tmp_seed}" -pubout) \
+    || error "Failed to derive public key for ${name} — is the nk binary valid?"
 
   # Move seed to final location with tight permissions
   install -m 0600 -o root -g root "${tmp_seed}" "${seed_file}"

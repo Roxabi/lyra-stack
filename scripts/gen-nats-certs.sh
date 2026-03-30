@@ -61,7 +61,7 @@ chown root:nats "${CERT_DIR}/server.key"
 
 info "Creating server certificate (SAN: ${SAN})..."
 EXT_FILE=$(mktemp)
-trap 'rm -f "${EXT_FILE}"' EXIT
+trap 'rm -f "${EXT_FILE}" "${CERT_DIR}/server.csr" "${CERT_DIR}/ca.srl"' EXIT
 
 cat > "${EXT_FILE}" << EOF
 [v3_ext]
