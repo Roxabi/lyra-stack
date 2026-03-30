@@ -198,6 +198,10 @@ fi
 loginctl enable-linger "$ADMIN_USER" 2>/dev/null || true
 info "Linger enabled for $ADMIN_USER (services auto-start on boot)."
 
+# Note: lyra-monitor.timer (health monitoring) is installed by `make register`
+# in the lyra repo, not by provision.sh. It requires secrets in .env first.
+# After setup: cd ~/projects/lyra && make register && make monitor enable
+
 section "Node.js"
 if command -v node &>/dev/null; then
   info "Node.js already installed ($(node --version))."

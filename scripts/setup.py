@@ -404,6 +404,13 @@ def main() -> None:
     run("loginctl enable-linger $(whoami)", check=False)
     print("  ✓  lyra-stack.service enabled (auto-starts on boot)")
 
+    # Enable monitoring timer (installed by make register)
+    print()
+    print("Enabling monitoring timer...")
+    run("systemctl --user enable lyra-monitor.timer", check=False)
+    print("  ✓  lyra-monitor.timer enabled")
+    print("     Run 'make monitor enable' to start, after adding secrets to .env")
+
     print()
     print("─" * 40)
     print("Setup complete!")
@@ -413,6 +420,7 @@ def main() -> None:
     print("  make lyra reload                     restart lyra")
     print("  make tts reload                      restart voicecli_tts")
     print("  make stt reload                      restart voicecli_stt")
+    print("  make monitor status                  health monitoring timer")
     print()
 
     # ── Remaining manual steps ───────────────────────────────────────────────
@@ -458,6 +466,17 @@ def main() -> None:
     manual_steps.append(
         "Add bot tokens to the credential store:\n"
         "     cd ~/projects/lyra && lyra bot add"
+    )
+
+    manual_steps.append(
+        "Set up health monitoring:\n"
+        "     1. Add to .env: TELEGRAM_TOKEN, TELEGRAM_ADMIN_CHAT_ID\n"
+        "     2. Create health secret:\n"
+        "        mkdir -p ~/.lyra/secrets\n"
+        '        openssl rand -hex 32 > ~/.lyra/secrets/health_secret\n'
+        "        chmod 600 ~/.lyra/secrets/health_secret\n"
+        "     3. Add LYRA_HEALTH_SECRET=$(cat ~/.lyra/secrets/health_secret) to .env\n"
+        "     4. make monitor enable"
     )
 
     if manual_steps:
