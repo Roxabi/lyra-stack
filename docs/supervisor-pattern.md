@@ -245,6 +245,8 @@ make setup ARGS=--all  # include optional modules
 
 ## Current registry
 
+### Supervisor programs (long-running daemons)
+
 | Program | Project | Config |
 |---------|---------|--------|
 | `lyra_telegram` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra_telegram.conf` |
@@ -252,3 +254,15 @@ make setup ARGS=--all  # include optional modules
 | `voicecli_tts` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_tts.conf` |
 | `voicecli_stt` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_stt.conf` |
 | `diagrams` | `~/projects/lyra-stack` | `lyra-stack/diagrams/conf.d/diagrams.conf` |
+
+### Systemd user timers (periodic tasks)
+
+Periodic tasks use **systemd user timers** instead of supervisor. They are oneshot services that run, do work, and exit — not long-running daemons.
+
+| Timer | Project | Unit files | Interval |
+|-------|---------|------------|----------|
+| `lyra-monitor` | `~/projects/lyra` | `lyra/deploy/lyra-monitor.{service,timer}` | 5 min |
+
+Installed to `~/.config/systemd/user/` via `make register` in the project repo. Managed via `make monitor status|logs|run|enable|disable`.
+
+**Why the split?** Supervisor excels at keeping daemons alive with restart policies. Systemd timers excel at precise scheduling with `Persistent=true` (catch up after reboots) and journalctl integration. Using the right tool for each job type avoids hacks like sleep loops in supervisor.

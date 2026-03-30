@@ -27,7 +27,7 @@ endef
 # ── Parse: make <service> <action> ───────────────────────────────────────────
 
 IS_SVC_ACTION :=
-ifneq (,$(filter lyra stt tts telegram discord diagrams,$(firstword $(MAKECMDGOALS))))
+ifneq (,$(filter lyra stt tts telegram discord diagrams monitor,$(firstword $(MAKECMDGOALS))))
   SVC_CMD := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   ifneq (,$(SVC_CMD))
     IS_SVC_ACTION := 1
@@ -37,7 +37,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams deploy help
+.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams monitor deploy help
 
 .DEFAULT_GOAL := help
 
@@ -55,6 +55,7 @@ help:
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
 	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy|deploy-prod"
+	@echo "  monitor  status|logs|run|enable|disable  (systemd timer, not supervisor)"
 	@echo ""
 	@echo "  deploy           git pull + rsync ~/.agent/ to production"
 	@echo ""
@@ -207,6 +208,26 @@ else ifeq ($(SVC_CMD),du)
 	@du -sh ~/.agent/*/
 else
 	$(SUPERVISORCTL) status diagrams
+endif
+
+monitor:
+ifeq ($(SVC_CMD),status)
+	@systemctl --user status lyra-monitor.timer lyra-monitor.service 2>&1 || true
+	@echo ""
+	@systemctl --user list-timers lyra-monitor.timer 2>/dev/null || true
+else ifeq ($(SVC_CMD),logs)
+	@journalctl --user -u lyra-monitor.service -f
+else ifeq ($(SVC_CMD),run)
+	@echo "Triggering manual monitoring run..."
+	@systemctl --user start lyra-monitor.service
+else ifeq ($(SVC_CMD),enable)
+	@systemctl --user enable --now lyra-monitor.timer
+	@echo "Monitor timer enabled."
+else ifeq ($(SVC_CMD),disable)
+	@systemctl --user disable --now lyra-monitor.timer
+	@echo "Monitor timer disabled."
+else
+	@systemctl --user status lyra-monitor.timer 2>&1 || true
 endif
 
 ifndef IS_SVC_ACTION
