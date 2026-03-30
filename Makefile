@@ -2,8 +2,8 @@ SUPERVISORCTL   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))scripts/supervi
 SUPERVISOR_START := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))scripts/start.sh
 SUPERVISOR_DIR  := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
-MACHINE1        := $(or $(shell grep '^MACHINE1_HOST=' .env 2>/dev/null | cut -d= -f2),mickael@192.168.1.16)
-MACHINE1_STACK  := $(or $(shell grep '^MACHINE1_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
+DEPLOY_HOST     := $(shell grep '^DEPLOY_HOST=' .env 2>/dev/null | cut -d= -f2)
+DEPLOY_STACK    := $(or $(shell grep '^DEPLOY_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
 
 # Common excludes for rclone sync (Google Drive) — skip tooling (symlinks to repo), build output, caches
 RCLONE_EXCLUDES := \
@@ -202,7 +202,7 @@ else ifeq ($(SVC_CMD),deploy-prod)
 		--exclude "*.py" \
 		--exclude "build.sh" \
 		--exclude "manifest.json" \
-		~/.agent/ $(MACHINE1):~/.agent/
+		~/.agent/ $(DEPLOY_HOST):~/.agent/
 	@echo "Done."
 else ifeq ($(SVC_CMD),du)
 	@du -sh ~/.agent/*/
@@ -232,9 +232,9 @@ endif
 
 ifndef IS_SVC_ACTION
 deploy:
-	@echo "Deploying to production ($(MACHINE1))..."
+	@echo "Deploying to production ($(DEPLOY_HOST))..."
 	@echo "── git pull ──"
-	@ssh $(MACHINE1) "cd $(MACHINE1_STACK) && git pull"
+	@ssh $(DEPLOY_HOST) "cd $(DEPLOY_STACK) && git pull"
 	@echo "── rsync ~/.agent/ ──"
 	@rsync -avz \
 		--exclude "__pycache__/" \
@@ -242,6 +242,6 @@ deploy:
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
 		--exclude "_dist/" \
-		~/.agent/ $(MACHINE1):~/.agent/
+		~/.agent/ $(DEPLOY_HOST):~/.agent/
 	@echo "Done."
 endif
