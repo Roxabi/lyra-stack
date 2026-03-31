@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Lyra by Roxabi — NATS server opt-in provisioning
-# Usage: sudo -E ~/projects/lyra-stack/scripts/nats-install.sh
+# Usage: cd ~/projects/lyra-stack && make nats-install
 #
 # Installs the NATS server binary, system user, config, systemd unit,
 # and lyra-stack ordering drop-in. Idempotent — safe to run multiple times.
@@ -8,6 +8,8 @@
 # Run this AFTER provision.sh on machines that participate in multi-machine
 # NATS pub/sub (Machine 1 hub and any compute workers).
 set -euo pipefail
+
+[[ $EUID -eq 0 ]] && { echo "[!] Do not run as root — use: make nats-install"; exit 1; }
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -116,3 +118,7 @@ echo "  2. Start NATS:"
 echo ""
 echo "     sudo systemctl start nats.service"
 echo "     sudo systemctl status nats.service"
+echo ""
+echo "  3. Restart lyra-stack to activate new After=nats.service ordering:"
+echo ""
+echo "     systemctl --user restart lyra-stack.service"
