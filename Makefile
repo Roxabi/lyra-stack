@@ -37,7 +37,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams monitor deploy help
+.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams monitor deploy nats-install help
 
 .DEFAULT_GOAL := help
 
@@ -58,6 +58,7 @@ help:
 	@echo "  monitor  status|logs|run|enable|disable  (systemd timer, not supervisor)"
 	@echo ""
 	@echo "  deploy           git pull + rsync ~/.agent/ to production"
+	@echo "  nats-install     opt-in NATS server setup (binary, user, config, systemd)"
 	@echo ""
 	@echo "  Set LYRA_STACK_DIR to override hub location (default: ~/projects/lyra-stack)"
 
@@ -229,6 +230,9 @@ else ifeq ($(SVC_CMD),disable)
 else
 	@systemctl --user status lyra-monitor.timer 2>&1 || true
 endif
+
+nats-install:
+	@bash $(SUPERVISOR_DIR)scripts/nats-install.sh
 
 ifndef IS_SVC_ACTION
 deploy:
