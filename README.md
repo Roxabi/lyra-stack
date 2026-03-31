@@ -113,28 +113,42 @@ Exploration artifacts (brand iterations, diagram drafts, visual explorations) li
 | `make diagrams deploy-prod` | Rsync `~/.agent/` to production (with `--delete`) |
 | `make diagrams du` | Disk usage per project |
 
-## NATS
+## Multi-machine setup
 
 NATS is the message broker for pub/sub communication between the Lyra hub and workers (future use — Slice A3+).
 
-It runs as a **systemd system service** (`nats.service`) on Machine 1, independent of the supervisord instance.
+NATS is **opt-in** — `provision.sh` does not install it. Single-machine setups work without NATS.
+To enable it on machines that participate in multi-machine mode:
+
+```bash
+# Run after provision.sh + cloning lyra-stack
+cd ~/projects/lyra-stack && make nats-install
+```
+
+This installs the NATS binary, system user, config, systemd unit, lyra-stack ordering drop-in,
+and UFW rule (port 4222, LAN-only). Idempotent — safe to run multiple times.
+
+After `make nats-install`, complete the TLS + nkey setup:
+
+```bash
+sudo ~/projects/lyra-stack/scripts/gen-nats-certs.sh   # TLS CA + server cert
+sudo ~/projects/lyra-stack/scripts/gen-nats-nkeys.sh   # nkey pairs → /etc/nats/nkeys/auth.conf
+sudo systemctl start nats.service
+sudo systemctl status nats.service
+```
+
+NATS runs as a **systemd system service** (`nats.service`), independent of supervisord.
 Auth uses **nkey** public-key authentication. Transport is **TLS 1.3** (self-signed CA).
 
 ```bash
-# First-time setup (run after provision.sh and cloning lyra-stack)
-sudo ~/projects/lyra-stack/scripts/gen-nats-certs.sh   # generates TLS CA + server cert
-sudo ~/projects/lyra-stack/scripts/gen-nats-nkeys.sh   # generates nkey pairs, writes /etc/nats/nkeys/auth.conf
-sudo systemctl start nats.service
-sudo systemctl status nats.service
-
 # Daily control
 sudo systemctl status|start|stop|restart nats
 sudo journalctl -u nats -f
 ```
 
-Config lives in `nats/nats.conf` (installed to `/etc/nats/nats.conf` by `provision.sh`).
-Port 4222 is LAN-only (`192.168.1.0/24`); the UFW rule is applied by `provision.sh`.
-The `lyra-stack.service` user unit starts after `nats.service` via a systemd drop-in.
+Config lives in `nats/nats.conf` (installed to `/etc/nats/nats.conf` by `make nats-install`).
+Port 4222 is LAN-only (`192.168.1.0/24`).
+The `lyra-stack.service` user unit starts after `nats.service` via a systemd drop-in (installed by `make nats-install`).
 
 ## How it works
 

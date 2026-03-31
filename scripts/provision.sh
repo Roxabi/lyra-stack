@@ -227,93 +227,6 @@ else
   info "agent-browser installed."
 fi
 
-# ── NATS server ──────────────────────────────────────────────────────────────
-
-NATS_VERSION="2.10.22"  # pinned — update when upgrading
-
-section "NATS server binary"
-if [ -x /usr/local/bin/nats-server ]; then
-  info "nats-server already installed ($(/usr/local/bin/nats-server --version 2>&1 | head -1))."
-else
-  ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-  NATS_TARBALL="nats-server-v${NATS_VERSION}-linux-${ARCH}.tar.gz"
-  NATS_URL="https://github.com/nats-io/nats-server/releases/download/v${NATS_VERSION}/${NATS_TARBALL}"
-  NATS_SHA256_URL="https://github.com/nats-io/nats-server/releases/download/v${NATS_VERSION}/SHA256SUMS"
-  NATS_TMP=$(mktemp -d)
-  # Download as user; sudo install below
-  trap 'rm -rf "${NATS_TMP}"' EXIT
-  curl -fsSL "${NATS_URL}" -o "${NATS_TMP}/${NATS_TARBALL}"
-  curl -fsSL "${NATS_SHA256_URL}" -o "${NATS_TMP}/SHA256SUMS"
-  (cd "${NATS_TMP}" && grep "${NATS_TARBALL}" SHA256SUMS | sha256sum --check) \
-    || error "SHA-256 verification failed for nats-server v${NATS_VERSION}"
-  tar -xz -C "${NATS_TMP}" -f "${NATS_TMP}/${NATS_TARBALL}"
-  sudo install -m 755 "${NATS_TMP}/nats-server-v${NATS_VERSION}-linux-${ARCH}/nats-server" /usr/local/bin/nats-server
-  info "nats-server v${NATS_VERSION} installed to /usr/local/bin/nats-server."
-fi
-
-section "NATS system user + directories"
-if id nats &>/dev/null; then
-  info "nats user already exists."
-else
-  sudo useradd --system --no-create-home --shell /usr/sbin/nologin --comment "NATS Server" nats
-  info "nats system user created."
-fi
-sudo mkdir -p /etc/nats/certs /etc/nats/nkeys
-sudo chown -R root:nats /etc/nats
-sudo chmod 750 /etc/nats /etc/nats/certs /etc/nats/nkeys
-
-section "NATS config + systemd unit"
-LYRA_STACK_DIR="${LYRA_STACK_DIR:-$HOME/projects/lyra-stack}"
-if [ -f /etc/nats/nats.conf ]; then
-  info "nats.conf already installed."
-else
-  if [ -f "${LYRA_STACK_DIR}/nats/nats.conf" ]; then
-    sudo install -m 644 -o root -g nats "${LYRA_STACK_DIR}/nats/nats.conf" /etc/nats/nats.conf
-    info "nats.conf installed to /etc/nats/nats.conf."
-  else
-    warn "lyra-stack not cloned yet — skipping nats.conf install."
-    warn "Run after cloning: sudo install -m 644 ${LYRA_STACK_DIR}/nats/nats.conf /etc/nats/nats.conf"
-  fi
-fi
-
-if [ -f /etc/systemd/system/nats.service ]; then
-  info "nats.service already installed."
-else
-  if [ -f "${LYRA_STACK_DIR}/nats/nats.service" ]; then
-    sudo install -m 644 "${LYRA_STACK_DIR}/nats/nats.service" /etc/systemd/system/nats.service
-    sudo systemctl daemon-reload
-    sudo systemctl enable nats.service
-    info "nats.service installed and enabled."
-  else
-    warn "lyra-stack not cloned yet — skipping nats.service install."
-    warn "Run after cloning: sudo install ${LYRA_STACK_DIR}/nats/nats.service /etc/systemd/system/"
-  fi
-fi
-
-section "lyra-stack ordering (After=nats.service)"
-# User units cannot directly depend on system units; drop-in is the correct mechanism.
-NATS_DROPIN_DIR="$HOME/.config/systemd/user/lyra-stack.service.d"
-NATS_DROPIN="${NATS_DROPIN_DIR}/after-nats.conf"
-if [ -f "${NATS_DROPIN}" ]; then
-  info "lyra-stack After=nats.service drop-in already installed."
-else
-  mkdir -p "${NATS_DROPIN_DIR}"
-  cat > "${NATS_DROPIN}" << 'DROPIN'
-[Unit]
-After=nats.service
-DROPIN
-  systemctl --user daemon-reload 2>/dev/null || true
-  info "lyra-stack.service will now start after nats.service (drop-in installed)."
-fi
-
-section "Firewall (NATS port 4222 — LAN only)"
-if sudo ufw status | grep -qE "4222/tcp.*ALLOW.*192\.168\.1\.0"; then
-  info "UFW NATS rule already exists."
-else
-  sudo ufw allow from 192.168.1.0/24 to any port 4222 proto tcp comment "NATS (LAN)"
-  info "UFW: port 4222 allowed from 192.168.1.0/24."
-fi
-
 # ── External tools ───────────────────────────────────────────────────────────
 
 section "External tools (ADR-010: Install, Wrap, Declare)"
@@ -363,20 +276,17 @@ else
   echo "     git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack"
   echo "     cd ~/projects/lyra-stack && make setup"
   echo ""
-  echo "  2. Finish NATS setup (TLS + nkeys):"
-  echo ""
-  echo "     sudo ~/projects/lyra-stack/scripts/gen-nats-certs.sh"
-  echo "     sudo ~/projects/lyra-stack/scripts/gen-nats-nkeys.sh"
-  echo "     sudo systemctl start nats.service"
-  echo "     sudo systemctl status nats.service"
-  echo ""
-  echo "  3. Enable auto-start on boot:"
+  echo "  2. Enable auto-start on boot:"
   echo ""
   echo "     systemctl --user daemon-reload"
   echo "     systemctl --user enable lyra-stack.service"
   echo ""
-  echo "  4. Authenticate Claude CLI:"
+  echo "  3. Authenticate Claude CLI:"
   echo ""
   echo "     claude"
+  echo ""
+  echo "  Optional — multi-machine NATS setup:"
+  echo ""
+  echo "     cd ~/projects/lyra-stack && make nats-install"
   echo ""
 fi
