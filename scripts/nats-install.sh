@@ -24,7 +24,7 @@ error()   { echo -e "${RED}[x]${NC} $1"; exit 1; }
 section() { echo -e "\n${GREEN}=== $1 ===${NC}"; }
 
 NATS_VERSION="2.10.22"  # pinned — update when upgrading
-LYRA_STACK_DIR="${LYRA_STACK_DIR:-$HOME/projects/lyra-stack}"
+LYRA_STACK_DIR=$(cd "$(dirname "$0")/.." && pwd)
 
 section "NATS server binary"
 if [ -x /usr/local/bin/nats-server ]; then
@@ -38,7 +38,7 @@ else
   trap 'rm -rf "${NATS_TMP}"' EXIT
   curl -fsSL "${NATS_URL}" -o "${NATS_TMP}/${NATS_TARBALL}"
   curl -fsSL "${NATS_SHA256_URL}" -o "${NATS_TMP}/SHA256SUMS"
-  (cd "${NATS_TMP}" && grep "${NATS_TARBALL}" SHA256SUMS | sha256sum --check) \
+  (cd "${NATS_TMP}" && grep -F "${NATS_TARBALL}" SHA256SUMS | sha256sum --check) \
     || error "SHA-256 verification failed for nats-server v${NATS_VERSION}"
   tar -xz -C "${NATS_TMP}" -f "${NATS_TMP}/${NATS_TARBALL}"
   sudo install -m 755 "${NATS_TMP}/nats-server-v${NATS_VERSION}-linux-${ARCH}/nats-server" /usr/local/bin/nats-server
@@ -100,7 +100,7 @@ DROPIN
 fi
 
 section "Firewall (NATS port 4222 — LAN only)"
-if sudo ufw status | grep -qE "4222/tcp.*ALLOW.*192\.168\.1\.0"; then
+if sudo ufw status | grep -q "4222"; then
   info "UFW NATS rule already exists."
 else
   sudo ufw allow from 192.168.1.0/24 to any port 4222 proto tcp comment "NATS (LAN)"
