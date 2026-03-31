@@ -285,4 +285,8 @@ else
   echo ""
   echo "     claude"
   echo ""
+  echo "  Optional — multi-machine NATS setup:"
+  echo ""
+  echo "     cd ~/projects/lyra-stack && make nats-install"
+  echo ""
 fi
