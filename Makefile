@@ -49,7 +49,7 @@ help:
 	@echo "  stop             stop all services + supervisord"
 	@echo "  ps               status of all services"
 	@echo ""
-	@echo "  lyra     start|stop|reload|logs|errlogs|status"
+	@echo "  lyra     start|stop|reload|logs|errlogs|status  (hub + telegram + discord)"
 	@echo "  tts      start|stop|reload|logs|errlogs|status"
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
@@ -82,19 +82,23 @@ endif
 lyra:
 	$(ensure_supervisor)
 ifeq ($(SVC_CMD),reload)
+	$(SUPERVISORCTL) restart lyra_hub
 	$(SUPERVISORCTL) restart lyra_telegram
 	$(SUPERVISORCTL) restart lyra_discord
 else ifeq ($(SVC_CMD),logs)
-	$(SUPERVISORCTL) tail -f lyra_telegram
+	$(SUPERVISORCTL) tail -f lyra_hub
 else ifeq ($(SVC_CMD),errlogs)
-	$(SUPERVISORCTL) tail -f lyra_telegram stderr
+	$(SUPERVISORCTL) tail -f lyra_hub stderr
 else ifeq ($(SVC_CMD),stop)
+	$(SUPERVISORCTL) stop lyra_hub
 	$(SUPERVISORCTL) stop lyra_telegram
 	$(SUPERVISORCTL) stop lyra_discord
 else ifeq ($(SVC_CMD),start)
+	$(SUPERVISORCTL) start lyra_hub
 	$(SUPERVISORCTL) start lyra_telegram
 	$(SUPERVISORCTL) start lyra_discord
 else
+	$(SUPERVISORCTL) status lyra_hub
 	$(SUPERVISORCTL) status lyra_telegram
 	$(SUPERVISORCTL) status lyra_discord
 endif
