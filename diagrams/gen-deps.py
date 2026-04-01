@@ -132,11 +132,9 @@ def build_mermaid(phase_id, all_issues, domains):
     for gid, (_, lbl) in {**ghost_in, **ghost_out}.items():
         lines.append(f'    {gid}["{lbl}"]')
 
-    # Edges
     for a, b in edges:
         lines.append(f'    {a} --> {b}')
 
-    # Styles
     for iid, issue in phase_issues.items():
         lines.append(f'    style {mid(iid)} {node_style(issue, domains)}')
     for gid, (style, _) in {**ghost_in, **ghost_out}.items():
@@ -196,7 +194,7 @@ def render_chain_card(chain, all_issues, domains):
   </div>"""
 
     # Count done vs open
-    done_ids = [i for i in issues if all_issues.get(i, {}).get("status") in ("done_recent",)]
+    done_ids = [i for i in issues if all_issues.get(i, {}).get("status") == "done_recent"]
     open_ids = [i for i in issues if all_issues.get(i, {}).get("status") not in ("done_recent", "done_old")]
     total = len(issues)
     done_count = len(done_ids)
@@ -229,10 +227,7 @@ def render_chain_card(chain, all_issues, domains):
     unlocks = _compute_unlocks(issues, all_issues, set(issues))
     unlock_row = ""
     if unlocks:
-        badges = "".join(
-            f'<span style="background:#0f172a;color:#94a3b8;border:1px dashed #6366f1;border-radius:4px;padding:2px 6px">{lbl}</span>'
-            for lbl in unlocks
-        )
+        badges = "".join(_badge_span(lbl) for lbl in unlocks)
         # Describe "when X done" trigger
         trigger = _unlock_trigger(chain, all_issues)
         unlock_row = f"""
@@ -271,18 +266,18 @@ def render_chain_card(chain, all_issues, domains):
   </div>"""
 
 
+def _badge_span(lbl: str) -> str:
+    return f'<span style="background:#0f172a;color:#94a3b8;border:1px dashed #6366f1;border-radius:4px;padding:2px 6px">{lbl}</span>'
+
+
 def _ghost_badges(note_str):
     """Convert a plain text note into ghost badge spans."""
-    parts = [p.strip() for p in note_str.split("+")]
-    return "".join(
-        f'<span style="background:#0f172a;color:#94a3b8;border:1px dashed #6366f1;border-radius:4px;padding:2px 6px">{p}</span>'
-        for p in parts
-    )
+    return "".join(_badge_span(p.strip()) for p in note_str.split("+"))
 
 
 def _compute_unlocks(chain_issue_ids, all_issues, chain_set):
     """Return ghost badge labels for cross-chain/cross-phase unlocks."""
-    seen = {}
+    seen = set()
     for iid in chain_issue_ids:
         issue = all_issues.get(iid)
         if not issue:
@@ -295,9 +290,8 @@ def _compute_unlocks(chain_issue_ids, all_issues, chain_set):
                 continue
             ph = phase_short(blocked.get("phase", "?"))
             lbl = f"{ph} {blocked.get('label', blocked_id)}"
-            if lbl not in seen:
-                seen[lbl] = True
-    return list(seen.keys())
+            seen.add(lbl)
+    return list(seen)
 
 
 def _unlock_trigger(chain, all_issues):

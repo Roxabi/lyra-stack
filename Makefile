@@ -246,6 +246,9 @@ deploy:
 		--exclude ".DS_Store" \
 		--exclude ".sync.log" \
 		--exclude "_dist/" \
+		--exclude "*.py" \
+		--exclude "build.sh" \
+		--exclude "manifest.json" \
 		~/.agent/ $(DEPLOY_HOST):~/.agent/
 	@echo "Done."
 endif
