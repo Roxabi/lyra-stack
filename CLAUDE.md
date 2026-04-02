@@ -16,7 +16,7 @@ Managed by a **systemd user unit** (`lyra-stack.service`) with linger — auto-s
 | `lyra_discord` | `python -m lyra --adapter discord` | Lyra AI agent — Discord adapter |
 | `voicecli_tts` | `voicecli serve --engine qwen-fast` | TTS daemon — keeps Qwen model warm in VRAM for zero-latency speech generation |
 | `voicecli_stt` | `voicecli stt-serve` | STT daemon — keeps faster-whisper loaded for fast dictation via `voicecli dictate` |
-| `diagrams` | `diagrams/scripts/run.sh` | Diagrams gallery — serves `~/.agent/` with live-reload on `localhost:8080` |
+| `diagrams` | `diagrams/scripts/run.sh` | Diagrams gallery — serves `~/.roxabi/forge/` with live-reload on `localhost:8080` |
 
 ## Layout
 
@@ -68,13 +68,13 @@ make stt start|reload|stop|logs|errlogs
 
 make diagrams             # show diagrams status
 make diagrams start|reload|stop|logs|errlogs
-make diagrams push        # push ~/.agent/ → Google Drive
-make diagrams pull        # pull Google Drive → ~/.agent/
+make diagrams push        # push ~/.roxabi/forge/ → Google Drive
+make diagrams pull        # pull Google Drive → ~/.roxabi/forge/
 make diagrams sync        # push then pull (bidirectional)
 make diagrams build       # regenerate manifest + assemble _dist/
 make diagrams deploy      # build + deploy to Cloudflare Pages → diagrams.roxabi.com
-make diagrams deploy-prod # rsync ~/.agent/ → production (with --delete)
-make diagrams du          # disk usage per project in ~/.agent/
+make diagrams deploy-prod # rsync ~/.roxabi/forge/ → production (with --delete)
+make diagrams du          # disk usage per project in ~/.roxabi/forge/
 make deploy               # full lyra stack deploy (git pull + rsync all)
 
 # Deploy notes:
@@ -91,14 +91,14 @@ systemctl --user restart lyra-stack  # restart all
 
 Code and data are strictly separated:
 - **Code** (`lyra-stack/diagrams/`) — all tooling, version-controlled in git
-- **Data** (`~/.agent/`) — diagram HTML files only, synced via rclone/rsync
+- **Data** (`~/.roxabi/forge/`) — diagram HTML files only, synced via rclone/rsync
 
-Scripts use `DIAGRAMS_DIR` env var (defaults to `~/.agent/`) to locate data.
+Scripts use `DIAGRAMS_DIR` env var (defaults to `~/.roxabi/forge/`) to locate data.
 `run.sh` sets this and runs `serve.py` from the repo. `index.html` is served
-from the repo directory, not `~/.agent/`.
+from the repo directory, not `~/.roxabi/forge/`.
 
 ```
-~/.agent/                          ← data only, no tooling
+~/.roxabi/forge/                          ← data only, no tooling
   diagrams/                        ← project diagram docs (openclaw, aionui, etc.)
   lyra/                            ← lyra visuals + brand
   roxabi-plugins/                  ← roxabi-plugins brand
@@ -132,7 +132,7 @@ See `~/projects/lyra-stack/docs/supervisor-pattern.md` for the full pattern.
 
 ## Deploy — Cloudflare Pages
 
-La galerie de diagrammes (`~/.agent/`) est hébergée sur **Cloudflare Pages** (projet `diagrams`).
+La galerie de diagrammes (`~/.roxabi/forge/`) est hébergée sur **Cloudflare Pages** (projet `diagrams`).
 
 ```bash
 make diagrams deploy   # build + deploy → Cloudflare Pages
