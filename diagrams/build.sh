@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export DIAGRAMS_DIR="${DIAGRAMS_DIR:-$HOME/.agent}"
+export DIAGRAMS_DIR="${DIAGRAMS_DIR:-$HOME/.roxabi/forge}"
 DIST="$DIAGRAMS_DIR/_dist"
 
 echo "▸ Regenerating manifest.json…"
@@ -16,7 +16,7 @@ echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
 echo "▸ Syncing to _dist/…"
-rm -rf "$DIST"
+mkdir -p "$DIST"
 rsync -a --delete \
   --exclude='_dist/' \
   --exclude='*.py' \

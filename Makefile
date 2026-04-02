@@ -4,6 +4,7 @@ SUPERVISOR_DIR  := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
 DEPLOY_HOST     := $(shell grep '^DEPLOY_HOST=' .env 2>/dev/null | cut -d= -f2)
 DEPLOY_STACK    := $(or $(shell grep '^DEPLOY_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
+FORGE_DIR       ?= $(HOME)/.roxabi/forge
 
 # Common excludes for rclone sync (Google Drive) — skip tooling (symlinks to repo), build output, caches
 RCLONE_EXCLUDES := \
@@ -57,7 +58,7 @@ help:
 	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy|deploy-prod"
 	@echo "  monitor  status|logs|run|enable|disable  (systemd timer, not supervisor)"
 	@echo ""
-	@echo "  deploy           git pull + rsync ~/.agent/ to production"
+	@echo "  deploy           git pull + rsync $(FORGE_DIR)/ to production"
 	@echo "  nats-install     opt-in NATS server setup (binary, user, config, systemd)"
 	@echo ""
 	@echo "  Set LYRA_STACK_DIR to override hub location (default: ~/projects/lyra-stack)"
@@ -181,23 +182,23 @@ else ifeq ($(SVC_CMD),start)
 	$(SUPERVISORCTL) start diagrams
 else ifeq ($(SVC_CMD),push)
 	@echo "── push local → Drive ──"
-	rclone copy ~/.agent/ SyncLyra:agent-archive/ $(RCLONE_EXCLUDES) -v
+	rclone copy $(FORGE_DIR)/ SyncLyra:roxabi/forge/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),pull)
 	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:agent-archive/ ~/.agent/ $(RCLONE_EXCLUDES) -v
+	rclone copy SyncLyra:roxabi/forge/ $(FORGE_DIR)/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),sync)
 	@echo "── push local → Drive ──"
-	rclone copy ~/.agent/ SyncLyra:agent-archive/ $(RCLONE_EXCLUDES) -v
+	rclone copy $(FORGE_DIR)/ SyncLyra:roxabi/forge/ $(RCLONE_EXCLUDES) -v
 	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:agent-archive/ ~/.agent/ $(RCLONE_EXCLUDES) -v
+	rclone copy SyncLyra:roxabi/forge/ $(FORGE_DIR)/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),build)
 	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 else ifeq ($(SVC_CMD),deploy)
 	@bash $(SUPERVISOR_DIR)diagrams/build.sh
 	@echo "▸ Deploying to Cloudflare Pages…"
-	@set -a; [ -f .env ] && . ./.env; set +a; CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy ~/.agent/_dist --project-name=diagrams --branch=main --commit-dirty=true
+	@set -a; [ -f .env ] && . ./.env; set +a; CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy $(FORGE_DIR)/_dist --project-name=diagrams --branch=main --commit-dirty=true
 else ifeq ($(SVC_CMD),deploy-prod)
-	@echo "── rsync ~/.agent/ → production ──"
+	@echo "── rsync $(FORGE_DIR)/ → production ──"
 	@rsync -avz --delete \
 		--exclude "__pycache__/" \
 		--exclude "*.pyc" \
@@ -207,10 +208,10 @@ else ifeq ($(SVC_CMD),deploy-prod)
 		--exclude "*.py" \
 		--exclude "build.sh" \
 		--exclude "manifest.json" \
-		~/.agent/ $(DEPLOY_HOST):~/.agent/
+		$(FORGE_DIR)/ $(DEPLOY_HOST):$(FORGE_DIR)/
 	@echo "Done."
 else ifeq ($(SVC_CMD),du)
-	@du -sh ~/.agent/*/
+	@du -sh $(FORGE_DIR)/*/
 else
 	$(SUPERVISORCTL) status diagrams
 endif
@@ -243,7 +244,7 @@ deploy:
 	@echo "Deploying to production ($(DEPLOY_HOST))..."
 	@echo "── git pull ──"
 	@ssh $(DEPLOY_HOST) "cd $(DEPLOY_STACK) && git pull"
-	@echo "── rsync ~/.agent/ ──"
+	@echo "── rsync $(FORGE_DIR)/ ──"
 	@rsync -avz \
 		--exclude "__pycache__/" \
 		--exclude "*.pyc" \
@@ -253,6 +254,6 @@ deploy:
 		--exclude "*.py" \
 		--exclude "build.sh" \
 		--exclude "manifest.json" \
-		~/.agent/ $(DEPLOY_HOST):~/.agent/
+		$(FORGE_DIR)/ $(DEPLOY_HOST):$(FORGE_DIR)/
 	@echo "Done."
 endif

@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 
-DIAGRAMS_DIR = Path(os.environ.get('DIAGRAMS_DIR', Path.home() / '.agent'))
+DIAGRAMS_DIR = Path(os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge'))
 SKIP = {'_dist', '__pycache__', '.git'}
 
 for dirpath, dirnames, filenames in os.walk(DIAGRAMS_DIR):

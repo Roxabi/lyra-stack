@@ -8,13 +8,14 @@ Usage:
 """
 
 import json
+import os
 import re
 import sys
 import subprocess
 from pathlib import Path
 from collections import defaultdict
 
-DIAGRAMS_DIR = Path.home() / ".agent"
+DIAGRAMS_DIR = Path(os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge'))
 DEFAULT_DATA = DIAGRAMS_DIR / "lyra/visuals/deps/roadmap-deps.json"
 DEFAULT_OUT  = DIAGRAMS_DIR / "lyra/visuals/tabs/lyra-status/tab-dependencies.html"
 
