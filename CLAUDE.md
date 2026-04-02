@@ -1,4 +1,5 @@
 @.claude/stack.yml
+@.claude/dev-core.md
 @CLAUDE.local.md
 
 # ~/projects/lyra-stack — Lyra Infrastructure
@@ -123,50 +124,11 @@ See `~/projects/lyra-stack/docs/supervisor-pattern.md` for the full pattern.
 | TTS | `~/.local/share/voicecli/daemon.sock` |
 | STT | `~/.local/share/voicecli/stt-daemon.sock` |
 
-## Critical Rules
-
 ## TL;DR
 
 - **Before work:** Use `/dev #N` as the single entry point
-- **Decisions:** summarize context → numbered options + recommendation → wait for reply (see [Decision Protocol](#decision-protocol))
+- **Decisions:** → see global patterns (@.claude/dev-core.md)
 - **Never** commit without asking, push without request, or use `--force`/`--hard`/`--amend`
-
-### 1. Dev Process
-
-| Tier | Criteria | Phases |
-|------|----------|--------|
-| **S** | ≤3 files, no arch, no risk | triage → implement → pr → validate → review → fix* → cleanup* |
-| **F-lite** | Clear scope | frame → spec → plan → implement → verify → ship |
-
-### 2. Decision Protocol
-
-For all decisions, choices (≥2 options), approach proposals:
-
-1. **Summarize** — why / root cause / current behavior / target / path to reach it
-2. **Propose** — numbered options, one marked as recommended
-3. **Explain** — why the recommended option is recommended
-
-Then wait for reply.
-
-### 3. Parallel Execution
-
-≥3 independent tasks → present decision: Sequential | Parallel (Recommended).
-
-### 4. Git
-
-Format: `<type>(<scope>): <desc>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-Types: feat|fix|refactor|docs|style|test|chore|ci|perf
-Never push without request. Never force/hard/amend. Hook fail → fix + NEW commit.
-
-### 5. Worktree
-
-```bash
-git worktree add ../lyra-stack-XXX -b feat/XXX-slug staging
-cd ../lyra-stack-XXX
-```
-
-Exception: XS changes (present decision).
-**Never code on main/staging without worktree.**
 
 ## Deploy — Cloudflare Pages
 

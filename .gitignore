@@ -8,3 +8,4 @@ CLAUDE.local.md
 .env
 .claude/dev-core.yml
 .wrangler/
+.claude/dev-core.md
