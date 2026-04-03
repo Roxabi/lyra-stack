@@ -21,7 +21,7 @@ Its `conf.d/` contains **only symlinks** — each project repo owns its configs.
     supervisorctl.sh
 
 ~/.local/state/
-  lyra-stack/logs/                         ← supervisord + diagrams logs
+  lyra-stack/logs/                         ← supervisord + forge logs
   lyra/logs/                               ← lyra process + app logs
   voicecli/logs/                           ← voicecli process logs
 
@@ -253,7 +253,7 @@ make setup ARGS=--all  # include optional modules
 | `lyra_discord` | `~/projects/lyra` | `lyra/supervisor/conf.d/lyra_discord.conf` |
 | `voicecli_tts` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_tts.conf` |
 | `voicecli_stt` | `~/projects/voiceCLI` | `voiceCLI/supervisor/conf.d/voicecli_stt.conf` |
-| `diagrams` | `~/projects/lyra-stack` | `lyra-stack/diagrams/conf.d/diagrams.conf` |
+| `forge` | `~/projects/lyra-stack` | `lyra-stack/forge/conf.d/forge.conf` |
 
 ### Systemd user timers (periodic tasks)
 

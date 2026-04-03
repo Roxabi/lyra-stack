@@ -213,10 +213,10 @@ def setup_plugins(
     print()
 
 
-def bootstrap_diagrams() -> None:
-    """Create ~/.agent/ structure and copy server files from lyra-stack."""
-    agent_dir = Path.home() / ".agent"
-    diagrams_src = LYRA_STACK_DIR / "diagrams"
+def bootstrap_forge() -> None:
+    """Create ~/.roxabi/forge/ structure and copy server files from lyra-stack."""
+    agent_dir = Path.home() / ".roxabi/forge"
+    forge_src = LYRA_STACK_DIR / "forge"
     agent_dir.mkdir(parents=True, exist_ok=True)
 
     # Create per-project exploration directories
@@ -224,7 +224,7 @@ def bootstrap_diagrams() -> None:
         (agent_dir / subdir).mkdir(parents=True, exist_ok=True)
 
     for name in ("serve.py", "gen-manifest.py", "index.html"):
-        src = diagrams_src / name
+        src = forge_src / name
         dst = agent_dir / name
         if not src.exists():
             continue
@@ -234,14 +234,14 @@ def bootstrap_diagrams() -> None:
                 continue
         shutil.copy2(src, dst)
 
-    # Register diagrams conf symlink
-    conf_src = diagrams_src / "conf.d" / "diagrams.conf"
-    conf_dst = LYRA_STACK_DIR / "conf.d" / "diagrams.conf"
+    # Register forge conf symlink
+    conf_src = forge_src / "conf.d" / "forge.conf"
+    conf_dst = LYRA_STACK_DIR / "conf.d" / "forge.conf"
     if conf_src.exists() and not conf_dst.exists():
         conf_dst.parent.mkdir(parents=True, exist_ok=True)
         conf_dst.symlink_to(conf_src)
 
-    print("  ✓  Diagrams gallery bootstrapped (~/.agent/)")
+    print("  ✓  Forge gallery bootstrapped (~/.roxabi/forge/)")
 
 
 def symlink_voicecli(voicecli_dir: Path) -> None:
@@ -373,10 +373,10 @@ def main() -> None:
 
     create_log_dirs()
 
-    if ask("  Install diagrams gallery? (optional)", default=False):
-        bootstrap_diagrams()
+    if ask("  Install forge gallery? (optional)", default=False):
+        bootstrap_forge()
     else:
-        print("  skip  diagrams")
+        print("  skip  forge")
 
     if voicecli_dir and voicecli_dir.exists():
         symlink_voicecli(voicecli_dir)

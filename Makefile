@@ -5,6 +5,7 @@ SUPERVISOR_PID  := $(SUPERVISOR_DIR)supervisord.pid
 DEPLOY_HOST     := $(shell grep '^DEPLOY_HOST=' .env 2>/dev/null | cut -d= -f2)
 DEPLOY_STACK    := $(or $(shell grep '^DEPLOY_STACK_DIR=' .env 2>/dev/null | cut -d= -f2),~/projects/lyra-stack)
 FORGE_DIR       ?= $(HOME)/.roxabi/forge
+IDNA_DIR        ?= $(HOME)/.roxabi/idna
 
 # Common excludes for rclone sync (Google Drive) — skip tooling (symlinks to repo), build output, caches
 RCLONE_EXCLUDES := \
@@ -28,7 +29,7 @@ endef
 # ── Parse: make <service> <action> ───────────────────────────────────────────
 
 IS_SVC_ACTION :=
-ifneq (,$(filter lyra stt tts telegram discord diagrams monitor,$(firstword $(MAKECMDGOALS))))
+ifneq (,$(filter lyra stt tts telegram discord forge monitor idna,$(firstword $(MAKECMDGOALS))))
   SVC_CMD := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   ifneq (,$(SVC_CMD))
     IS_SVC_ACTION := 1
@@ -38,7 +39,7 @@ endif
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 
-.PHONY: setup start stop status ps lyra stt tts telegram discord diagrams monitor deploy nats-install help
+.PHONY: setup start stop status ps lyra stt tts telegram discord forge monitor idna deploy nats-install help
 
 .DEFAULT_GOAL := help
 
@@ -55,7 +56,8 @@ help:
 	@echo "  stt      start|stop|reload|logs|errlogs|status"
 	@echo "  telegram start|stop|reload|logs|errlogs|status"
 	@echo "  discord  start|stop|reload|logs|errlogs|status"
-	@echo "  diagrams start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy|deploy-prod"
+	@echo "  forge    start|stop|reload|logs|errlogs|status|sync|pull|push|du|build|deploy|deploy-prod"
+	@echo "  idna     start|stop|reload|logs|errlogs|status|ls  (local only, never deployed)"
 	@echo "  monitor  status|logs|run|enable|disable  (systemd timer, not supervisor)"
 	@echo ""
 	@echo "  deploy           git pull + rsync $(FORGE_DIR)/ to production"
@@ -168,33 +170,33 @@ else
 	$(SUPERVISORCTL) status voicecli_tts
 endif
 
-diagrams:
+forge:
 	$(ensure_supervisor)
 ifeq ($(SVC_CMD),reload)
-	$(SUPERVISORCTL) restart diagrams
+	$(SUPERVISORCTL) restart forge
 else ifeq ($(SVC_CMD),logs)
-	$(SUPERVISORCTL) tail -f diagrams
+	$(SUPERVISORCTL) tail -f forge
 else ifeq ($(SVC_CMD),errlogs)
-	$(SUPERVISORCTL) tail -f diagrams stderr
+	$(SUPERVISORCTL) tail -f forge stderr
 else ifeq ($(SVC_CMD),stop)
-	$(SUPERVISORCTL) stop diagrams
+	$(SUPERVISORCTL) stop forge
 else ifeq ($(SVC_CMD),start)
-	$(SUPERVISORCTL) start diagrams
+	$(SUPERVISORCTL) start forge
 else ifeq ($(SVC_CMD),push)
-	@echo "── push local → Drive ──"
-	rclone copy $(FORGE_DIR)/ SyncLyra:roxabi/forge/ $(RCLONE_EXCLUDES) -v
+	@echo "── push ~/.roxabi/ → Drive ──"
+	rclone copy $(HOME)/.roxabi/ SyncLyra:roxabi/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),pull)
-	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:roxabi/forge/ $(FORGE_DIR)/ $(RCLONE_EXCLUDES) -v
+	@echo "── pull Drive → ~/.roxabi/ ──"
+	rclone copy SyncLyra:roxabi/ $(HOME)/.roxabi/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),sync)
-	@echo "── push local → Drive ──"
-	rclone copy $(FORGE_DIR)/ SyncLyra:roxabi/forge/ $(RCLONE_EXCLUDES) -v
-	@echo "── pull Drive → local ──"
-	rclone copy SyncLyra:roxabi/forge/ $(FORGE_DIR)/ $(RCLONE_EXCLUDES) -v
+	@echo "── push ~/.roxabi/ → Drive ──"
+	rclone copy $(HOME)/.roxabi/ SyncLyra:roxabi/ $(RCLONE_EXCLUDES) -v
+	@echo "── pull Drive → ~/.roxabi/ ──"
+	rclone copy SyncLyra:roxabi/ $(HOME)/.roxabi/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),build)
-	@bash $(SUPERVISOR_DIR)diagrams/build.sh
+	@bash $(SUPERVISOR_DIR)forge/build.sh
 else ifeq ($(SVC_CMD),deploy)
-	@bash $(SUPERVISOR_DIR)diagrams/build.sh
+	@bash $(SUPERVISOR_DIR)forge/build.sh
 	@echo "▸ Deploying to Cloudflare Pages…"
 	@set -a; [ -f .env ] && . ./.env; set +a; CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy $(FORGE_DIR)/_dist --project-name=diagrams --branch=main --commit-dirty=true
 else ifeq ($(SVC_CMD),deploy-prod)
@@ -213,7 +215,25 @@ else ifeq ($(SVC_CMD),deploy-prod)
 else ifeq ($(SVC_CMD),du)
 	@du -sh $(FORGE_DIR)/*/
 else
-	$(SUPERVISORCTL) status diagrams
+	$(SUPERVISORCTL) status forge
+endif
+
+idna:
+	$(ensure_supervisor)
+ifeq ($(SVC_CMD),reload)
+	$(SUPERVISORCTL) restart idna
+else ifeq ($(SVC_CMD),logs)
+	$(SUPERVISORCTL) tail -f idna
+else ifeq ($(SVC_CMD),errlogs)
+	$(SUPERVISORCTL) tail -f idna stderr
+else ifeq ($(SVC_CMD),stop)
+	$(SUPERVISORCTL) stop idna
+else ifeq ($(SVC_CMD),start)
+	$(SUPERVISORCTL) start idna
+else ifeq ($(SVC_CMD),ls)
+	@ls $(IDNA_DIR)/
+else
+	$(SUPERVISORCTL) status idna
 endif
 
 monitor:

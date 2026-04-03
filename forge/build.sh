@@ -3,8 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export DIAGRAMS_DIR="${DIAGRAMS_DIR:-$HOME/.roxabi/forge}"
-DIST="$DIAGRAMS_DIR/_dist"
+export FORGE_DIR="${FORGE_DIR:-${DIAGRAMS_DIR:-$HOME/.roxabi/forge}}"
+DIST="$FORGE_DIR/_dist"
 
 echo "▸ Regenerating manifest.json…"
 python3 "$SCRIPT_DIR/gen-manifest.py"
@@ -22,10 +22,10 @@ rsync -a --delete \
   --exclude='*.py' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
-  "$DIAGRAMS_DIR/" "$DIST/"
+  "$FORGE_DIR/" "$DIST/"
 
-# Copy gallery UI from repo into _dist
-cp "$SCRIPT_DIR/index.html" "$DIST/index.html"
+# Copy gallery UI from canonical forge location into _dist
+cp "$FORGE_DIR/index.html" "$DIST/index.html"
 
 FILE_COUNT=$(find "$DIST" -type f | wc -l)
 SIZE=$(du -sh "$DIST" | cut -f1)

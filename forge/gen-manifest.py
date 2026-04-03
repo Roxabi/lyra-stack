@@ -18,7 +18,7 @@ import glob as globmod
 import json, os, re, time
 from pathlib import Path
 
-DIR = Path(os.environ.get('DIAGRAMS_DIR', Path(__file__).parent))
+DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path(__file__).parent)))
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
 TITLE_RE = re.compile(r'<title>([^<]+)</title>', re.IGNORECASE)
 
@@ -98,6 +98,6 @@ for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
 out = DIR / 'manifest.json'
 out.write_text(json.dumps(entries, ensure_ascii=False, indent=2) + '\n')
 
-print(f'manifest.json — {len(entries)} diagrams written.')
+print(f'manifest.json — {len(entries)} visuals written.')
 if skipped:
     print(f'Skipped (no diagram meta): {", ".join(skipped)}')

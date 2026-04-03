@@ -15,9 +15,9 @@ import subprocess
 from pathlib import Path
 from collections import defaultdict
 
-DIAGRAMS_DIR = Path(os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge'))
-DEFAULT_DATA = DIAGRAMS_DIR / "lyra/visuals/deps/roadmap-deps.json"
-DEFAULT_OUT  = DIAGRAMS_DIR / "lyra/visuals/tabs/lyra-status/tab-dependencies.html"
+FORGE_DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
+DEFAULT_DATA = FORGE_DIR / "lyra/visuals/deps/roadmap-deps.json"
+DEFAULT_OUT  = FORGE_DIR / "lyra/visuals/tabs/lyra-status/tab-dependencies.html"
 
 # ── Styles ──────────────────────────────────────────────────────────────────
 

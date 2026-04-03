@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""serve.py — serve diagrams with live-reload.
+"""serve.py — serve forge visuals with live-reload.
 
 - Regenerates manifest.json on startup and whenever HTML files change
 - Watches for HTML file changes (add/remove/modify) every 2s
@@ -140,7 +140,7 @@ def watcher_loop():
             prev = curr
 
             entries, skipped = gen_manifest()
-            print(f'[watcher] manifest updated — {len(entries)} diagrams (changed: {", ".join(sorted(delta))})')
+            print(f'[watcher] manifest updated — {len(entries)} visuals (changed: {", ".join(sorted(delta))})')
 
             # Notify SSE clients
             msg = f'data: {json.dumps({"type":"reload","changed":sorted(delta)})}\n\n'
@@ -284,7 +284,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     # Initial manifest generation
     entries, skipped = gen_manifest()
-    print(f'manifest.json — {len(entries)} diagrams')
+    print(f'manifest.json — {len(entries)} visuals')
     if skipped:
         print(f'  skipped (no meta): {", ".join(skipped)}')
 
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     # Start HTTP server
     server = http.server.ThreadingHTTPServer(('0.0.0.0', PORT), Handler)
-    print(f'Serving diagrams at http://localhost:{PORT}')
+    print(f'Serving forge at http://localhost:{PORT}')
     print(f'Watching for changes every 2s...')
     try:
         server.serve_forever()

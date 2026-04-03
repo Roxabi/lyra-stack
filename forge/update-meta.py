@@ -10,7 +10,7 @@ Strategy:
 import os, re, html as html_lib
 from pathlib import Path
 
-DIR = Path(os.environ.get('DIAGRAMS_DIR', Path(__file__).parent))
+DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path(__file__).parent)))
 
 START = '<!-- diagram-meta:start -->'
 END   = '<!-- diagram-meta:end -->'

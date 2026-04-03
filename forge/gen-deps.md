@@ -15,7 +15,7 @@ python3 diagrams/gen-deps.py
 python3 diagrams/gen-deps.py --github-sync
 
 # Build + deploy to Cloudflare
-make diagrams deploy          # runs gen-deps.py automatically
+make forge deploy          # runs gen-deps.py automatically
 ```
 
 ---
@@ -289,5 +289,5 @@ Calls `gh issue list --state all` in `~/projects/lyra`, compares close dates aga
 
 Automate it:
 ```bash
-python3 diagrams/gen-deps.py --github-sync && make diagrams deploy
+python3 diagrams/gen-deps.py --github-sync && make forge deploy
 ```

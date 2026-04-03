@@ -7,7 +7,7 @@ then run gen-manifest.py to regenerate manifest.json.
 import os, re
 from pathlib import Path
 
-DIR = Path(os.environ.get('DIAGRAMS_DIR', Path(__file__).parent))
+DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path(__file__).parent)))
 
 # Source of truth: one entry per diagram file.
 # kb is omitted — gen-manifest.py computes it from actual file size.

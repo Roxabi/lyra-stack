@@ -29,7 +29,7 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 |---------|------|---------|----------|
 | `voicecli_tts` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | TTS daemon (Qwen, zero-latency) | NVIDIA GPU |
 | `voicecli_stt` | [Roxabi/voiceCLI](https://github.com/Roxabi/voiceCLI) | STT daemon (Whisper, live dictation) | NVIDIA GPU |
-| `diagrams` | (built-in) | Diagrams gallery with live-reload | — |
+| `forge` | (built-in) | Forge gallery with live-reload | — |
 | — | [Roxabi/imageCLI](https://github.com/Roxabi/imageCLI) | Image generation CLI | NVIDIA GPU |
 | — | [Roxabi/roxabi-vault](https://github.com/Roxabi/roxabi-vault) | Knowledge vault | — |
 
@@ -53,7 +53,7 @@ lyra-stack solves this with a single supervisord instance. Each project repo own
 curl -fsSL https://raw.githubusercontent.com/Roxabi/lyra-stack/main/scripts/provision.sh | bash
 
 # 2. Clone this repo and run setup
-#    Installs lyra (core), prompts for optional modules (voiceCLI, diagrams, etc.)
+#    Installs lyra (core), prompts for optional modules (voiceCLI, forge, etc.)
 #    and installs Claude Code plugins (mandatory + prompted optional)
 git clone git@github.com:Roxabi/lyra-stack.git ~/projects/lyra-stack
 cd ~/projects/lyra-stack && make setup
@@ -97,21 +97,21 @@ Replace `<svc>` with `lyra` (both adapters), `telegram`, `discord`, `tts`, or `s
 | `make <svc> errors` | Tail stderr |
 | `make <svc> stop` | Stop service |
 
-### Diagrams & exploration artifacts
+### Forge & exploration artifacts
 
-Exploration artifacts (brand iterations, diagram drafts, visual explorations) live in `~/.agent/` (data only). Tooling lives in `lyra-stack/diagrams/` (git-tracked). Latest versions are tagged with the `latest` badge in diagram meta. Backed up to Google Drive via rclone.
+Exploration artifacts (brand iterations, diagram drafts, visual explorations) live in `~/.roxabi/forge/` (data only). Tooling lives in `lyra-stack/forge/` (git-tracked). Latest versions are tagged with the `latest` badge in diagram meta. Backed up to Google Drive via rclone.
 
 | Command | Description |
 |---------|-------------|
-| `make diagrams` | Show gallery server status |
-| `make diagrams start` | Start gallery server on :8080 |
-| `make diagrams push` | Push `~/.agent/` to Google Drive |
-| `make diagrams pull` | Pull Google Drive to `~/.agent/` |
-| `make diagrams sync` | Push then pull (bidirectional) |
-| `make diagrams build` | Regenerate manifest + assemble `_dist/` |
-| `make diagrams deploy` | Build + deploy to Cloudflare Pages |
-| `make diagrams deploy-prod` | Rsync `~/.agent/` to production (with `--delete`) |
-| `make diagrams du` | Disk usage per project |
+| `make forge` | Show gallery server status |
+| `make forge start` | Start gallery server on :8080 |
+| `make forge push` | Push `~/.roxabi/forge/` to Google Drive |
+| `make forge pull` | Pull Google Drive to `~/.roxabi/forge/` |
+| `make forge sync` | Push then pull (bidirectional) |
+| `make forge build` | Regenerate manifest + assemble `_dist/` |
+| `make forge deploy` | Build + deploy to Cloudflare Pages |
+| `make forge deploy-prod` | Rsync `~/.roxabi/forge/` to production (with `--delete`) |
+| `make forge du` | Disk usage per project |
 
 ## Multi-machine setup
 
@@ -161,7 +161,7 @@ The `lyra-stack.service` user unit starts after `nats.service` via a systemd dro
   lyra_discord.conf  → ~/projects/lyra/supervisor/conf.d/lyra_discord.conf
   voicecli_tts.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_tts.conf
   voicecli_stt.conf  → ~/projects/voiceCLI/supervisor/conf.d/voicecli_stt.conf
-  diagrams.conf      → ~/projects/lyra-stack/diagrams/conf.d/diagrams.conf
+  forge.conf         → ~/projects/lyra-stack/forge/conf.d/forge.conf
 ```
 
 See [`docs/supervisor-pattern.md`](docs/supervisor-pattern.md)
