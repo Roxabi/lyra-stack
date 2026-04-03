@@ -194,24 +194,11 @@ else ifeq ($(SVC_CMD),sync)
 	@echo "── pull Drive → ~/.roxabi/ ──"
 	rclone copy SyncLyra:roxabi/ $(HOME)/.roxabi/ $(RCLONE_EXCLUDES) -v
 else ifeq ($(SVC_CMD),build)
-	@bash $(SUPERVISOR_DIR)forge/build.sh
+	@echo "▸ Moved to roxabi-plugins. Run: cd ~/projects/roxabi-plugins && make forge-build"; exit 1
 else ifeq ($(SVC_CMD),deploy)
-	@bash $(SUPERVISOR_DIR)forge/build.sh
-	@echo "▸ Deploying to Cloudflare Pages…"
-	@set -a; [ -f .env ] && . ./.env; set +a; CLOUDFLARE_ACCOUNT_ID=b5e90be971920ce406f7b679c4f1cd33 npx wrangler pages deploy $(FORGE_DIR)/_dist --project-name=diagrams --branch=main --commit-dirty=true
+	@echo "▸ Moved to roxabi-plugins. Run: cd ~/projects/roxabi-plugins && make forge-deploy"; exit 1
 else ifeq ($(SVC_CMD),deploy-prod)
-	@echo "── rsync $(FORGE_DIR)/ → production ──"
-	@rsync -avz --delete \
-		--exclude "__pycache__/" \
-		--exclude "*.pyc" \
-		--exclude ".DS_Store" \
-		--exclude ".sync.log" \
-		--exclude "_dist/" \
-		--exclude "*.py" \
-		--exclude "build.sh" \
-		--exclude "manifest.json" \
-		$(FORGE_DIR)/ $(DEPLOY_HOST):$(FORGE_DIR)/
-	@echo "Done."
+	@echo "▸ Moved to roxabi-plugins. Run: cd ~/projects/roxabi-plugins && make forge-deploy-prod"; exit 1
 else ifeq ($(SVC_CMD),du)
 	@du -sh $(FORGE_DIR)/*/
 else
